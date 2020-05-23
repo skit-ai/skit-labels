@@ -1,0 +1,42 @@
+#+TITLE: tog-cli
+
+Command line interface for interacting with tog data server. Available on
+internal cheeseshop.
+
+Tog data server is our store of tagged/untagged data. Tagging efforts are
+organized in terms of =jobs= which keep a bunch of =tasks= to be tagged.
+
+As of now we only support downloading of data from a certain job in this tool.
+Further development will add more visibility in the stored data, feature to
+upload data etc.
+
+** Configuration
+For almost all command you will need credentials to be set in a few environment
+variables for the backend. An example follows. You can contact a team member to
+get the credentials for our server.
+
+#+begin_src shell
+export TOGDB_HOST=localhost
+export TOGDB_PORT=9999
+export TOGDB_USER=username
+export TOGDB_PASS=password
+#+end_src
+
+** Usage
+For downloading data for a job, you first need to know the integer id of that
+job and its task type.
+
+#+begin_quote
+Once we add listing support, you might not need to remember integer ids.
+#+end_quote
+
+Then run something like the following:
+#+begin_src shell
+tog download --job-id=61 --output-sqlite=job-61.sqlite --batch-size=5000 --task-type audio_segment
+#+end_src
+
+Task type is a kludge from past since we want to validate data after pulling in
+from server. Nevertheless, look in =./tog/types.py= for description of various
+task types supported. The string identifiers to be used in cli can be found in
+=tog.db.build_task= function. Again, ask a team member for help or adding more
+documentation.
