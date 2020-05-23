@@ -1,5 +1,7 @@
 #+TITLE: tog-cli
 
+[[tag][file:https://img.shields.io/github/v/tag/Vernacular-ai/tog-cli.svg]]
+
 Command line interface for interacting with tog data server. Available on
 internal cheeseshop.
 
