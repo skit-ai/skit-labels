@@ -25,8 +25,8 @@ export TOGDB_PASS=password
 #+end_src
 
 ** Usage
-For downloading data for a job, you first need to know the integer id of that
-job and its task type.
+For downloading a job data, you first need to know the integer id of that job
+and its task type.
 
 #+begin_quote
 Once we add listing support, you might not need to remember integer ids.
