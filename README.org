@@ -34,7 +34,7 @@ Once we add listing support, you might not need to remember integer ids.
 
 Then run something like the following:
 #+begin_src shell
-tog download --job-id=61 --output-sqlite=job-61.sqlite --batch-size=5000 --task-type audio_segment
+tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
 #+end_src
 
 Task type is a kludge from past since we want to validate data after pulling in
