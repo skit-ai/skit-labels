@@ -13,7 +13,7 @@ Further development will add more visibility in the stored data, feature to
 upload data etc.
 
 ** Configuration
-For almost all command you will need credentials to be set in a few environment
+For almost all commands you will need credentials to be set in a few environment
 variables for the backend. An example follows. You can contact a team member to
 get the credentials for our server.
 
