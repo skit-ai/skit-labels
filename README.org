@@ -26,15 +26,10 @@ export TOGDB_PASS=password
 
 ** Usage
 For downloading a job data, you first need to know the integer id of that job
-and its task type.
+and its task type. Then run something like the following:
 
-#+begin_quote
-Once we add listing support, you might not need to remember integer ids.
-#+end_quote
-
-Then run something like the following:
 #+begin_src shell
-tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
+  tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
 #+end_src
 
 Task type is a kludge from past since we want to validate data after pulling in
@@ -42,3 +37,5 @@ from server. Nevertheless, look in =./tog/types.py= for description of various
 task types supported. The string identifiers to be used in cli can be found in
 =tog.db.build_task= function. Again, ask a team member for help or adding more
 documentation.
+
+For more usage details, try =tog --help=.
