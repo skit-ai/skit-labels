@@ -326,15 +326,3 @@ class JobLocal(AbstractJob):
                 yield id_, task, json.loads(tag), tagged_time
             else:
                 yield task, json.loads(tag), tagged_time
-
-    def source_list(self):
-        """
-        Return a list of distinct source values.
-        """
-        try:
-            cur = self.conn.cursor()
-            cur.execute("SELECT distinct source from data")
-            return [item[0] for item in cur.fetchall()]
-        except sqlite3.OperationalError as error:
-            if "no such column" in str(error):
-                print(f"Missing column: {error}")
