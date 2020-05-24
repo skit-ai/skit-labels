@@ -19,6 +19,7 @@ Options:
 """
 
 import json
+import os
 import sqlite3
 
 import attr
@@ -26,17 +27,7 @@ from docopt import docopt
 from tqdm import tqdm
 
 from tog import __version__
-from tog.db import Database, Job
-
-
-def create_data_table(conn):
-    """
-    Create a table for storing data in.
-    """
-
-    c = conn.cursor()
-    c.execute("CREATE TABLE data (data_id INTEGER NOT NULL, data TEXT NOT NULL, tag TEXT NOT NULL, is_gold BOOLEAN NOT NULL, tagged_time TEXT)")
-    conn.commit()
+from tog.db import Database, Job, SqliteDatabase
 
 
 def batch_gen(source, n=100):
@@ -62,17 +53,17 @@ def main():
     if args["download"]:
         job = Job(int(args["--job-id"]), task_type=args["--task-type"])
 
-        conn = sqlite3.connect(args["--output-sqlite"])
-        create_data_table(conn)
+        output_filepath = args["--output-sqlite"]
+        if os.path.exists(output_filepath):
+            raise RuntimeError(f"File already exists {output_filepath}")
+
+        sdb = SqliteDatabase(output_filepath)
         bar = tqdm(total=job.total(untagged=args["--all"]))
 
-        c = conn.cursor()
         for items in batch_gen(job.get(untagged=args["--all"]), n=int(args["--batch-size"])):
-            rows = [(task.id, json.dumps(attr.asdict(task)), json.dumps(tag), task.is_gold, tagged_time) for task, tag, tagged_time in items]
-            c.executemany("INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)", rows)
+            rows = [(task.id, attr.asdict(task), tag, task.is_gold, tagged_time) for task, tag, tagged_time in items]
+            sdb.insert_rows(rows)
             bar.update(n=len(items))
-
-        conn.commit()
 
     elif args["describe"]:
         job = Job(int(args["--job-id"]))
