@@ -9,9 +9,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
 import dateutil.parser
-
 import psycopg2
 import pytz
+
 from tog.types import (AudioSegmentTask, CallTranscriptionTask,
                        ConversationTask, DataGenerationTask, SimulatedCallTask,
                        Task, TestTask)
@@ -65,6 +65,26 @@ def write_job_file(rows: List, filepath: str):
     conn.commit()
 
 
+class Database:
+    """
+    Class holding connection with backend database.
+    """
+
+    def __init__(self):
+        self._initialize()
+
+    def _initialize(self):
+        host = os.getenv("TOGDB_HOST")
+        user = os.getenv("TOGDB_USER")
+        password = os.getenv("TOGDB_PASS")
+        port = os.getenv("TOGDB_PORT", "5432")
+
+        if password is None:
+            raise ValueError("Credentials for Tog database not set. Check for missing environment variables.")
+
+        self.conn = psycopg2.connect(host=host, database="tog", user=user, password=password, port=port)
+
+
 class AbstractJob(ABC):
     """
     Abstract class representing connection to a tagging job.
@@ -88,33 +108,23 @@ class Job(AbstractJob):
     A Tog job which specifies a kind of tagging data set and problem.
     """
 
-    def __init__(self, id: int, task_type="conversation"):
+    def __init__(self, id: int, task_type="conversation", database=None):
         self.id = id
         # TODO: Check task validity right here
         self.task_type = task_type
-        self._initialize()
+
+        self.db = database or Database()
         self._fetch_details()
 
         # Cache for keeping rows of job indexed by data_ids
         self.cache = {}
-
-    def _initialize(self):
-        host = os.getenv("TOGDB_HOST")
-        user = os.getenv("TOGDB_USER")
-        password = os.getenv("TOGDB_PASS")
-        port = os.getenv("TOGDB_PORT", "5432")
-
-        if password is None:
-            raise ValueError("Credentials for Tog database not set")
-
-        self.conn = psycopg2.connect(host=host, database="tog", user=user, password=password, port=port)
 
     def _fetch_details(self):
         """
         Save metadata about the current job id
         """
 
-        with self.conn.cursor() as cur:
+        with self.db.conn.cursor() as cur:
             # NOTE: We are not picking out task_type field since that
             #       collides with our task type names. Ideally we need to
             #       settle on same nomenclature.
@@ -130,7 +140,7 @@ class Job(AbstractJob):
         untagged items in counting too.
         """
 
-        with self.conn.cursor() as cur:
+        with self.db.conn.cursor() as cur:
             cur.execute(f"SELECT count(*) FROM jobs_task WHERE job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}")
             n = cur.fetchone()[0]
         return n
@@ -143,7 +153,7 @@ class Job(AbstractJob):
         if id in self.cache:
             return self.cache[id]
 
-        with self.conn.cursor() as cur:
+        with self.db.conn.cursor() as cur:
             cur.execute(f"""SELECT
               jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time
             FROM jobs_task INNER JOIN jobs_data ON
@@ -174,7 +184,7 @@ class Job(AbstractJob):
         only items which are marked as gold.
         """
 
-        with self.conn.cursor(name="data_cursor") as cur:
+        with self.db.conn.cursor(name="data_cursor") as cur:
             cur.itersize = itersize
             cur.execute(f"""SELECT
               jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time, jobs_data.id
