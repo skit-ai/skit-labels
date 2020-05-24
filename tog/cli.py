@@ -4,6 +4,7 @@ Command line interface for interacting with a tog data server.
 Usage:
   tog download --job-id=<job-id> --output-sqlite=<output-sqlite>
     [--batch-size=<batch-size>] [--all] [--task-type=<task-type>]
+  tog describe --job-id=<job-id>
   tog --version
   tog (-h|--help)
 
@@ -70,3 +71,7 @@ def main():
             bar.update(n=len(items))
 
         conn.commit()
+    elif args["describe"]:
+        job = Job(int(args["--job-id"]))
+
+        print(f"Job {job.id}: {job.name} [language: {job.lang}]\n{job.description}")
