@@ -18,9 +18,7 @@ Options:
   --task-type=<task-type>           Task type for deserialization [default: conversation]
 """
 
-import json
 import os
-import sqlite3
 
 import attr
 from docopt import docopt
