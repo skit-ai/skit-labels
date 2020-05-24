@@ -6,6 +6,7 @@ Usage:
     [--batch-size=<batch-size>] [--all] [--task-type=<task-type>]
   tog describe --job-id=<job-id>
   tog stats --job-id=<job-id>
+  tog list
   tog --version
   tog (-h|--help)
 
@@ -25,7 +26,7 @@ from docopt import docopt
 from tqdm import tqdm
 
 from tog import __version__
-from tog.db import Job
+from tog.db import Database, Job
 
 
 def create_data_table(conn):
@@ -85,3 +86,12 @@ def main():
         n_tagged = job.total()
 
         print(f"Total items {n_total}. Tagged {n_tagged}. Untagged {n_total - n_tagged}.")
+
+    elif args["list"]:
+        db = Database()
+
+        jobs = db.list_jobs()
+        print(f"Total {len(jobs)} active jobs found\n")
+
+        for i, job in enumerate(jobs):
+            print(f"{i + 1}. Job {job['id']}: {job['name']} [language: {job['language']}]")

@@ -84,6 +84,25 @@ class Database:
 
         self.conn = psycopg2.connect(host=host, database="tog", user=user, password=password, port=port)
 
+    def list_jobs(self) -> List[Dict]:
+        with self.conn.cursor() as cur:
+            # NOTE: We are not picking out task_type field since that
+            #       collides with our task type names. Ideally we need to
+            #       settle on same nomenclature.
+            cur.execute("SELECT id, name, description, config, language FROM jobs_job WHERE is_active")
+
+            jobs: List[Dict] = []
+            for row in cur.fetchall():
+                jobs.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "config": row[3],
+                    "language": row[4]
+                })
+
+            return jobs
+
 
 class AbstractJob(ABC):
     """
