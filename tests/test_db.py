@@ -1,6 +1,4 @@
-import pytest
-
-from tog.db import JobLocal, write_job_file
+from tog.db import JobLocal, SqliteDatabase
 
 
 def test_sqlite_read_write(tmp_path):
@@ -15,7 +13,8 @@ def test_sqlite_read_write(tmp_path):
     ]
 
     sqlite_path = str(tmp_path / "job.sqlite")
-    write_job_file(rows, sqlite_path)
+    sdb = SqliteDatabase(sqlite_path)
+    sdb.insert_rows(rows)
 
     jb = JobLocal(sqlite_path, task_type="test_task")
 

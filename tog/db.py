@@ -45,24 +45,41 @@ def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
     return task
 
 
-def write_job_file(rows: List, filepath: str):
+class SqliteDatabase:
     """
-    Write rows to a new job file. Each item of row is a tuple of the following:
-    - data_id : int
-    - data: Dict
-    - tag: Dict
-    - is_gold: bool
-    - tagged_time: Optional[str]
+    Class mapping to a local sqlite database file which can keep only one job.
     """
 
-    conn = sqlite3.connect(filepath)
-    c = conn.cursor()
-    c.execute("CREATE TABLE data (data_id INTEGER NOT NULL, data TEXT NOT NULL, tag TEXT NOT NULL, is_gold BOOLEAN NOT NULL, tagged_time TEXT)")
+    def __init__(self, filepath: str):
+        self.filepath = filepath
+        self._initialize()
 
-    c.executemany("INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
-                  [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows])
+    def _initialize(self):
+        self.conn = sqlite3.connect(self.filepath)
+        c = self.conn.cursor()
+        c.execute("""CREATE TABLE IF NOT EXISTS data (
+            data_id INTEGER NOT NULL,
+            data TEXT NOT NULL,
+            tag TEXT NOT NULL,
+            is_gold BOOLEAN NOT NULL,
+            tagged_time TEXT
+        )""")
+        self.conn.commit()
 
-    conn.commit()
+    def insert_rows(self, rows: List):
+        """
+        Write rows in database. Each item of row is a tuple of following elements:
+        - data_id : int
+        - data: Dict
+        - tag: Dict
+        - is_gold: bool
+        - tagged_time: Optional[str]
+        """
+
+        c = self.conn.cursor()
+        c.executemany("INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
+                      [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows])
+        self.conn.commit()
 
 
 class Database:
