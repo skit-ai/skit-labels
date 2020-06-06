@@ -13,8 +13,8 @@ import psycopg2
 import pytz
 
 from tog.types import (AudioSegmentTask, CallTranscriptionTask,
-                       ConversationTask, DataGenerationTask, SimulatedCallTask,
-                       Task, TestTask)
+                       ConversationTask, DataGenerationTask, DictTask,
+                       SimulatedCallTask, Task)
 
 
 def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
@@ -34,8 +34,8 @@ def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
         task = SimulatedCallTask.from_dict(d)
     elif task_type == "audio_segment":
         task = AudioSegmentTask.from_dict(d)
-    elif task_type == "test_task":
-        task = TestTask.from_dict(d)
+    elif task_type == "dict":
+        task = DictTask.from_dict(d, data_id)
     elif task_type == "call_transcription":
         task = CallTranscriptionTask.from_dict(d, data_id)
     elif task_type == "data_generation":

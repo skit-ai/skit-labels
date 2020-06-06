@@ -15,7 +15,7 @@ Options:
   --output-sqlite=<output-sqlite>   Output sqlite file path
   --batch-size=<batch-size>         Number of items to download in a batch via server sided cursor [default: 500]
   --all                             If provided, download all data instead of only tagged ones.
-  --task-type=<task-type>           Task type for deserialization [default: conversation]
+  --task-type=<task-type>           Task type for deserialization [default: dict]
 """
 
 import os
@@ -61,7 +61,17 @@ def main():
         print(f"Downloading job {job.id}: {job.name} [language: {job.lang}]\n{job.description}")
 
         for items in batch_gen(job.get(untagged=args["--all"]), n=int(args["--batch-size"])):
-            rows = [(task.id, attr.asdict(task), tag, task.is_gold, tagged_time) for task, tag, tagged_time in items]
+            rows = []
+            for task, tag, tagged_time in items:
+                # For raw dictionary type tasks, we don't use attr classes.
+                if isinstance(task, dict):
+                    task_dict = task
+                else:
+                    task_dict = attr.asdict(task)
+
+                # TODO: is_gold might not be working for dict type tasks as of now
+                rows.append((task.id, task_dict, tag, task.is_gold, tagged_time))
+
             sdb.insert_rows(rows)
             bar.update(n=len(items))
 

@@ -32,18 +32,18 @@ class Task(ABC):
         return self.id == other.id
 
 
-@attr.s(slots=True)
-class TestTask(Task):
+class DictTask(Task, dict):
     """
-    Task taking in any form of data. Used mostly for testing.
+    Dictionary task wrapping around any form of data.
     """
 
     id: str = attr.ib()
-    data = attr.ib()
 
     @staticmethod
-    def from_dict(d):
-        return TestTask(id=d["id"], data=d)
+    def from_dict(d, id):
+        task = DictTask(d)
+        task.id = id
+        return task
 
 
 @attr.s(slots=True)
