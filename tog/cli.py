@@ -58,6 +58,8 @@ def main():
         sdb = SqliteDatabase(output_filepath)
         bar = tqdm(total=job.total(untagged=args["--all"]))
 
+        print(f"Downloading job {job.id}: {job.name} [language: {job.lang}]\n{job.description}")
+
         for items in batch_gen(job.get(untagged=args["--all"]), n=int(args["--batch-size"])):
             rows = [(task.id, attr.asdict(task), tag, task.is_gold, tagged_time) for task, tag, tagged_time in items]
             sdb.insert_rows(rows)
