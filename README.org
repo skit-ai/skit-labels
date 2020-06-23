@@ -32,10 +32,9 @@ and its task type. Then run something like the following:
   tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
 #+end_src
 
-Task type is a kludge from past since we want to validate data after pulling in
-from server. Nevertheless, look in =./tog/types.py= for description of various
-task types supported. The string identifiers to be used in cli can be found in
-=tog.db.build_task= function. Again, ask a team member for help or adding more
-documentation.
+Task type is optional and only needed if you want to do type validation. If you
+don't provide it, we just assume raw dictionary objects. Nevertheless, look in
+=./tog/types.py= for description of various task types. The string identifiers
+to be used in cli can be found in =tog.db.build_task= function.
 
 For more usage details, try =tog --help=.
