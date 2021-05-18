@@ -29,7 +29,7 @@ For downloading a job data, you first need to know the integer id of that job
 and its task type. Then run something like the following:
 
 #+begin_src shell
-  tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
+  poetry run tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
 #+end_src
 
 Task type is optional and only needed if you want to do type validation. If you
