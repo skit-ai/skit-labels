@@ -1,9 +1,13 @@
 #+TITLE: tog-cli
 
-[[tag][file:https://img.shields.io/github/v/tag/Vernacular-ai/tog-cli.svg]]
+[[tag][file:https://img.shields.io/github/v/tag/Vernacular-ai/tog-cli.svg]] [[https://cheeseshop.vernacular.ai/tog][https://cheeseshop.vernacular.ai/--badger--/tog.svg]]
 
 Command line interface for interacting with tog data server. Available on
-internal cheeseshop.
+internal cheeseshop and can be installed via:
+
+#+begin_src shell
+pip install tog --extra-index-url https://cheeseshop.vernacular.ai
+#+end_src
 
 Tog data server is our store of tagged/untagged data. Tagging efforts are
 organized in terms of =jobs= which keep a bunch of =tasks= to be tagged.
