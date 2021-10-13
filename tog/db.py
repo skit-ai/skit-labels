@@ -222,8 +222,13 @@ class Job(AbstractJob):
 
         with self.db.conn.cursor(name="data_cursor") as cur:
             cur.itersize = itersize
-            cur.execute(f"""SELECT
-              jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time, jobs_data.id
+            cur.execute(f"""
+            SELECT
+              jobs_data.data,
+              jobs_task.tag,
+              jobs_task.is_gold,
+              jobs_task.tagged_time,
+              jobs_data.id
             FROM jobs_task INNER JOIN jobs_data ON
               jobs_data.id = jobs_task.data_id
             WHERE
