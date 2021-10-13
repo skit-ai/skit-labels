@@ -176,40 +176,32 @@ class ConversationTask(Task):
     Plute style conversation (turn) task coming from tog.
     """
 
-    conversation_id: int = attr.ib()
-    state: str = attr.ib()
-    call_id: int = attr.ib()
-    reftime: str = attr.ib()
-    audio_url: str = attr.ib()
-    prediction = attr.ib()
     alternatives = attr.ib()
-    text = attr.ib(default=None)
-    history = attr.ib(factory=list)
-    tags = attr.ib(default=None)
-    uuid: str = attr.ib(default=None)
-    virtual_number: str = attr.ib(default=None)
+    audio_url: str = attr.ib()
+    call_uuid: str = attr.ib()
+    conversation_uuid: str = attr.ib()
+    state: str = attr.ib()
+    reftime: str = attr.ib()
+    prediction = attr.ib(default=None)
+    raw = attr.ib(default=None)
 
     @property
     def id(self):
-        return self.conversation_id
+        return self.conversation_uuid
 
     @staticmethod
     def from_dict(d):
         return ConversationTask(**{
             **py_.pick(d, [
-                "conversation_id",
-                "state",
-                "call_id",
-                "reftime",
-                "audio_url",
                 "alternatives",
-                "text",
-                "tags",
-                "uuid",
-                "virtual_number"
+                "audio_url",
+                "state",
+                "reftime",
+                "prediction",
             ]),
-            "history": d.get("history", []),
-            "prediction": d["prediction"]
+            "raw": d,
+            "call_uuid": str(d["call_id"]),
+            "conversation_uuid": str(d["conversation_id"]),
         })
 
 
