@@ -5,6 +5,7 @@ Module for working with tog database
 import json
 import os
 import sqlite3
+from datetime import datetime
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
@@ -15,6 +16,21 @@ import pytz
 from tog.types import (AudioSegmentTask, CallTranscriptionTask,
                        ConversationTask, DataGenerationTask, DictTask,
                        SimulatedCallTask, Task)
+
+
+def reftime_patterns(reftime: str):
+    time_fns = [
+        datetime.fromisoformat,
+        lambda date_string: datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f %z %Z'),
+        lambda date_string: datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ'),
+        lambda date_string: datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f%z')
+    ]
+    for time_fn in time_fns:
+        try:
+            return time_fn(reftime)
+        except ValueError:
+            continue
+    raise ValueError(f"Could not parse reftime {reftime}")
 
 
 def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
@@ -29,7 +45,8 @@ def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
         # is needed as saying 12 pm means different things in different timezones
         # and can't be translated without doing something stupid.
         tz = pytz.timezone("Asia/Kolkata")
-        task.reftime = dateutil.parser.parse(task.reftime).astimezone(tz).isoformat()
+        reftime = reftime_patterns(task.reftime)
+        task.reftime = reftime.astimezone(tz).isoformat()
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
     elif task_type == "audio_segment":
