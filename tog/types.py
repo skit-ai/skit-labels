@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import attr
+from fsm_pull.protobuf import convert
 from pydash import py_
 
 
@@ -191,6 +192,10 @@ class ConversationTask(Task):
 
     @staticmethod
     def from_dict(d):
+        call_uuid = d.get("call_id") or d.get("call_uuid")
+        conversation_uuid = d.get("conversation_id") or d.get("conversation_uuid")
+        if call_uuid is None or conversation_uuid is None:
+            raise ValueError(f"No reference for call or conversation. {d.keys()}")
         return ConversationTask(**{
             **py_.pick(d, [
                 "alternatives",
@@ -200,8 +205,8 @@ class ConversationTask(Task):
                 "prediction",
             ]),
             "raw": d,
-            "call_uuid": str(d["call_id"]),
-            "conversation_uuid": str(d["conversation_id"]),
+            "call_uuid": str(),
+            "conversation_uuid": str(),
         })
 
 
