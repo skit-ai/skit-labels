@@ -205,8 +205,8 @@ class ConversationTask(Task):
                 "prediction",
             ]),
             "raw": d,
-            "call_uuid": str(),
-            "conversation_uuid": str(),
+            "call_uuid": str(call_uuid),
+            "conversation_uuid": str(conversation_uuid),
         })
 
 
