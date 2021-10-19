@@ -192,8 +192,8 @@ class ConversationTask(Task):
 
     @staticmethod
     def from_dict(d):
-        call_uuid = d.get("call_id") or d.get("call_uuid")
-        conversation_uuid = d.get("conversation_id") or d.get("conversation_uuid")
+        call_uuid = d.get("call_uuid") if d.get("call_uuid") is not None else d.get("call_id")
+        conversation_uuid = d.get("conversation_uuid") if d.get("conversation_uuid") is not None else d.get("conversation_id")
         if call_uuid is None or conversation_uuid is None:
             raise ValueError(f"No reference for call or conversation. {d.keys()}")
         return ConversationTask(**{
