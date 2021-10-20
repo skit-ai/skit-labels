@@ -178,6 +178,7 @@ class ConversationTask(Task):
     """
 
     alternatives = attr.ib()
+    data_id = attr.ib()
     audio_url: str = attr.ib()
     call_uuid: str = attr.ib()
     conversation_uuid: str = attr.ib()
@@ -196,6 +197,8 @@ class ConversationTask(Task):
         conversation_uuid = d.get("conversation_uuid") if d.get("conversation_uuid") is not None else d.get("conversation_id")
         if call_uuid is None or conversation_uuid is None:
             raise ValueError(f"No reference for call or conversation. {d.keys()}")
+        if d.get("alternatives"):
+            d["alternatives"] = json.dumps(d["alternatives"], ensure_ascii=False)
         return ConversationTask(**{
             **py_.pick(d, [
                 "alternatives",
@@ -204,10 +207,12 @@ class ConversationTask(Task):
                 "reftime",
                 "prediction",
             ]),
+            "data_id": str(conversation_uuid),
             "raw": d,
             "call_uuid": str(call_uuid),
             "conversation_uuid": str(conversation_uuid),
         })
+
 
 
 @attr.s(slots=True)
