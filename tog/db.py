@@ -227,7 +227,7 @@ class Job(AbstractJob):
                 self.cache[id] = (task, tag, tagged_time)
             return task, tag, tagged_time
 
-    def get(self, untagged=False, itersize=1000, only_gold=False):
+    def get(self, untagged=False, itersize=1000, only_gold=False, start_date=None, end_date=None):
         """
         Return (generator) tagged tasks and tags from the database. Itersize sets
         the iteration size for the server sided cursor.
@@ -252,6 +252,8 @@ class Job(AbstractJob):
               jobs_task.job_id = {self.id}
               {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
               {'AND jobs_task.is_gold = true' if only_gold else ''}
+              {'AND jobs_data.created_at >= {start_date}' if isinstance(start_date, str) else ''}
+              {'AND jobs_data.created_at < {end_date}' if isinstance(end_date, str) else ''}
             """)
 
             for row in cur:
