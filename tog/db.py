@@ -236,25 +236,26 @@ class Job(AbstractJob):
         for checking, say, production metrics. If `only_gold` is True, return
         only items which are marked as gold.
         """
+        query = f"""
+        SELECT
+            jobs_data.data,
+            jobs_task.tag,
+            jobs_task.is_gold,
+            jobs_task.tagged_time,
+            jobs_data.id
+        FROM jobs_task INNER JOIN jobs_data ON
+            jobs_data.id = jobs_task.data_id
+        WHERE
+            jobs_task.job_id = {self.id}
+            {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
+            {"AND jobs_task.is_gold = true" if only_gold else ''}
+            {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+            {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
+        """
 
         with self.db.conn.cursor(name="data_cursor") as cur:
             cur.itersize = itersize
-            cur.execute(f"""
-            SELECT
-              jobs_data.data,
-              jobs_task.tag,
-              jobs_task.is_gold,
-              jobs_task.tagged_time,
-              jobs_data.id
-            FROM jobs_task INNER JOIN jobs_data ON
-              jobs_data.id = jobs_task.data_id
-            WHERE
-              jobs_task.job_id = {self.id}
-              {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
-              {'AND jobs_task.is_gold = true' if only_gold else ''}
-              {'AND jobs_data.created_at >= {start_date}' if isinstance(start_date, str) else ''}
-              {'AND jobs_data.created_at < {end_date}' if isinstance(end_date, str) else ''}
-            """)
+            cur.execute(query)
 
             for row in cur:
                 task_dict, tag, is_gold, tagged_time, data_id = row
