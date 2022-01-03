@@ -19,8 +19,6 @@ from tog.types import (AudioSegmentTask, CallTranscriptionTask,
 
 
 def reftime_patterns(reftime: str):
-    if isinstance(reftime, list) and not reftime:
-        return None
     time_fns = [
         datetime.fromisoformat,
         lambda date_string: datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f %z %Z'),
@@ -32,7 +30,7 @@ def reftime_patterns(reftime: str):
             return time_fn(reftime)
         except ValueError:
             continue
-    raise ValueError(f"Could not parse reftime {reftime}")
+    return None
 
 
 def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
@@ -48,7 +46,8 @@ def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
         # and can't be translated without doing something stupid.
         tz = pytz.timezone("Asia/Kolkata")
         reftime = reftime_patterns(task.reftime)
-        task.reftime = reftime.astimezone(tz).isoformat()
+        if reftime:
+            task.reftime = reftime.astimezone(tz).isoformat()
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
     elif task_type == "audio_segment":
