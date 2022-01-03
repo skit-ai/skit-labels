@@ -19,6 +19,8 @@ from tog.types import (AudioSegmentTask, CallTranscriptionTask,
 
 
 def reftime_patterns(reftime: str):
+    if isinstance(reftime, list) and not reftime:
+        return None
     time_fns = [
         datetime.fromisoformat,
         lambda date_string: datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S.%f %z %Z'),
