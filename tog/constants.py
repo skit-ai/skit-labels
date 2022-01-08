@@ -41,3 +41,6 @@ STATS = "stats"
 
 OUTPUT_FORMAT__CSV = ".csv"
 OUTPUT_FORMAT__SQLITE = ".sqlite"
+
+SOURCE__DB = "db"
+SOURCE__DVC = "dvc"
