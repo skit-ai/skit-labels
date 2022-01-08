@@ -16,6 +16,7 @@ pytz = "^2020.1"
 python-dateutil = "^2.8.1"
 toml = "^0.10.2"
 skit-fixdf = "^0.1.0"
+dvc = {extras = ["s3"], version = "^2.9.3"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.2"
