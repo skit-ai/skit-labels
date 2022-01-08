@@ -23,7 +23,9 @@ from tog.types import (
 )
 
 
-def build_task(d: Dict, task_type: str, data_id: Optional[str] = None, tz=pytz.UTC) -> Task:
+def build_task(
+    d: Dict, task_type: str, data_id: Optional[str] = None, tz=pytz.UTC
+) -> Task:
     """
     Create a task from given data dictionary.
     """
