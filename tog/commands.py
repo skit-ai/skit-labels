@@ -37,6 +37,8 @@ def download_dataset(
     batch_size: int = 500,
 ):
     job = Job(job_id, task_type=task_type, tz=timezone)
+    describe_dataset(job_id)
+    stat_dataset(job_id)
 
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
