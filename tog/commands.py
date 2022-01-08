@@ -44,9 +44,6 @@ def download_dataset(
     sdb = SqliteDatabase(temp_filepath)
     bar = tqdm(total=job.total(untagged=full))
 
-    describe_dataset(job_id)
-    stat_dataset(job_id)
-
     for items in batch_gen(job.get(untagged=full), n=int(batch_size)):
         rows = []
         for task, tag, tagged_time in items:
@@ -65,20 +62,27 @@ def download_dataset(
 
 
 def sdb2df(sdb: SqliteDatabase, job_id: int) -> str:
-    _, output_file = tempfile.mkstemp(prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV)
+    _, output_file = tempfile.mkstemp(
+        prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV
+    )
     df = pd.read_sql_query("SELECT * FROM data", sdb.conn)
     df.to_csv(output_file, index=False)
     return output_file
+
 
 
 def describe_dataset(job_id: Optional[int] = None, job: Optional[Job] = None):
     job_ = job or Job(job_id)
     print(f"Job {job_.id}: {job_.name} [language: {job_.lang}]\n{job_.description}")
 
+
 def stat_dataset(job_id: Optional[int] = None, job: Optional[Job] = None):
     job_ = job or Job(job_id)
     n_total = job_.total(untagged=True)
     n_tagged = job_.total()
+    print(f"Total items {n_total}. Tagged {n_tagged}. Untagged {n_total - n_tagged}.")
+
+
 def download_dataset_from_dvc(repo: str, path: str, remote: Optional[str] = None):
     file_name = os.path.split(path)[-1]
     _, output_file = tempfile.mkstemp(suffix=file_name)
