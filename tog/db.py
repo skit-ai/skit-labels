@@ -10,10 +10,17 @@ from typing import Dict, List, Optional
 
 import psycopg2
 import pytz
+from skit_fixdf.fix import datetime as fix_dt
 
-from tog.types import (AudioSegmentTask, CallTranscriptionTask,
-                       ConversationTask, DataGenerationTask, DictTask,
-                       SimulatedCallTask, Task)
+from tog.types import (
+    AudioSegmentTask,
+    CallTranscriptionTask,
+    ConversationTask,
+    DataGenerationTask,
+    DictTask,
+    SimulatedCallTask,
+    Task,
+)
 
 
 def build_task(d: Dict, task_type: str, data_id: Optional[str] = None, tz=pytz.UTC) -> Task:
@@ -56,13 +63,15 @@ class SqliteDatabase:
     def _initialize(self):
         self.conn = sqlite3.connect(self.filepath)
         c = self.conn.cursor()
-        c.execute("""CREATE TABLE IF NOT EXISTS data (
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS data (
             data_id INTEGER NOT NULL,
             data TEXT NOT NULL,
             tag TEXT NOT NULL,
             is_gold BOOLEAN NOT NULL,
             tagged_time TEXT
-        )""")
+        )"""
+        )
         self.conn.commit()
 
     def insert_rows(self, rows: List):
@@ -76,8 +85,10 @@ class SqliteDatabase:
         """
 
         c = self.conn.cursor()
-        c.executemany("INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
-                      [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows])
+        c.executemany(
+            "INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
+            [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows],
+        )
         self.conn.commit()
 
 
@@ -96,26 +107,34 @@ class Database:
         port = os.getenv("TOGDB_PORT", "5432")
 
         if password is None:
-            raise ValueError("Credentials for Tog database not set. Check for missing environment variables.")
+            raise ValueError(
+                "Credentials for Tog database not set. Check for missing environment variables."
+            )
 
-        self.conn = psycopg2.connect(host=host, database="tog", user=user, password=password, port=port)
+        self.conn = psycopg2.connect(
+            host=host, database="tog", user=user, password=password, port=port
+        )
 
     def list_jobs(self) -> List[Dict]:
         with self.conn.cursor() as cur:
             # NOTE: We are not picking out task_type field since that
             #       collides with our task type names. Ideally we need to
             #       settle on same nomenclature.
-            cur.execute("SELECT id, name, description, config, language FROM jobs_job WHERE is_active")
+            cur.execute(
+                "SELECT id, name, description, config, language FROM jobs_job WHERE is_active"
+            )
 
             jobs: List[Dict] = []
             for row in cur.fetchall():
-                jobs.append({
-                    "id": row[0],
-                    "name": row[1],
-                    "description": row[2],
-                    "config": row[3],
-                    "language": row[4]
-                })
+                jobs.append(
+                    {
+                        "id": row[0],
+                        "name": row[1],
+                        "description": row[2],
+                        "config": row[3],
+                        "language": row[4],
+                    }
+                )
 
             return jobs
 
@@ -164,7 +183,9 @@ class Job(AbstractJob):
             # NOTE: We are not picking out task_type field since that
             #       collides with our task type names. Ideally we need to
             #       settle on same nomenclature.
-            cur.execute(f"SELECT name, description, config, language FROM jobs_job WHERE id = {self.id}")
+            cur.execute(
+                f"SELECT name, description, config, language FROM jobs_job WHERE id = {self.id}"
+            )
             try:
                 self.name, self.description, self.config, self.lang = cur.fetchone()
             except TypeError:
@@ -177,7 +198,9 @@ class Job(AbstractJob):
         """
 
         with self.db.conn.cursor() as cur:
-            cur.execute(f"SELECT count(*) FROM jobs_task WHERE job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}")
+            cur.execute(
+                f"SELECT count(*) FROM jobs_task WHERE job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}"
+            )
             n = cur.fetchone()[0]
         return n
 
@@ -190,19 +213,21 @@ class Job(AbstractJob):
             return self.cache[id]
 
         with self.db.conn.cursor() as cur:
-            cur.execute(f"""SELECT
+            cur.execute(
+                f"""SELECT
               jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time
             FROM jobs_task INNER JOIN jobs_data ON
               jobs_data.id = jobs_task.data_id
             WHERE jobs_task.job_id = {self.id} AND jobs_data.data_id = '{id}'
-            """)
+            """
+            )
 
             try:
                 task_dict, tag_list, is_gold, tagged_time = cur.fetchone()
             except TypeError:
                 raise RuntimeError("No item found for given data id")
 
-            task = build_task(task_dict, self.task_type)
+            task = build_task(task_dict, self.task_type, tz=self.tz)
             task.is_gold = bool(is_gold)
             tag = json.loads(tag_list)
 
@@ -210,7 +235,14 @@ class Job(AbstractJob):
                 self.cache[id] = (task, tag, tagged_time)
             return task, tag, tagged_time
 
-    def get(self, untagged=False, itersize=1000, only_gold=False, start_date=None, end_date=None):
+    def get(
+        self,
+        untagged=False,
+        itersize=1000,
+        only_gold=False,
+        start_date=None,
+        end_date=None,
+    ):
         """
         Return (generator) tagged tasks and tags from the database. Itersize sets
         the iteration size for the server sided cursor.
@@ -265,7 +297,9 @@ class JobLocal(AbstractJob):
         """
 
         cur = self.conn.cursor()
-        cur.execute(f"SELECT count(*) FROM data {'' if untagged else 'WHERE tag IS NOT NULL'}")
+        cur.execute(
+            f"SELECT count(*) FROM data {'' if untagged else 'WHERE tag IS NOT NULL'}"
+        )
         return cur.fetchone()[0]
 
     def get_by_data_id(self, id: int, cache=True, show_source=False):
@@ -277,11 +311,13 @@ class JobLocal(AbstractJob):
         on_source = ", source" if show_source else ""
 
         cur = self.conn.cursor()
-        cur.execute(f"""SELECT
+        cur.execute(
+            f"""SELECT
           data, tag, is_gold, tagged_time{on_source}
         FROM data
         WHERE data_id = '{id}'
-        """)
+        """
+        )
 
         try:
             if show_source:
@@ -298,7 +334,14 @@ class JobLocal(AbstractJob):
             return task, tag, tagged_time, source
         return task, tag, tagged_time
 
-    def get(self, untagged=False, itersize=1000, only_gold=False, show_source=False, show_ids=False):
+    def get(
+        self,
+        untagged=False,
+        itersize=1000,
+        only_gold=False,
+        show_source=False,
+        show_ids=False,
+    ):
         """
         Return (generator) tagged tasks and tags from the database.
 
@@ -309,12 +352,14 @@ class JobLocal(AbstractJob):
         cur = self.conn.cursor()
         on_source = ", source" if show_source else ""
         on_ids = "data_id," if show_ids else ""
-        cur.execute(f"""SELECT
+        cur.execute(
+            f"""SELECT
           {on_ids} data, tag, is_gold, tagged_time {on_source}
         FROM data
         {'' if untagged else 'WHERE tag IS NOT NULL'}
         {'AND is_gold = 1' if only_gold else ''}
-        """)
+        """
+        )
 
         for row in cur:
             if show_source and show_ids:

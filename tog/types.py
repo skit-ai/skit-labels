@@ -77,7 +77,7 @@ class SimulatedTurn:
             type=d["type"],
             sub_type=d["sub_type"],
             text=d["text"],
-            prediction=pred
+            prediction=pred,
         )
 
 
@@ -94,16 +94,20 @@ class SimulatedCallTask(Task):
 
     @staticmethod
     def from_dict(d, make_prediction=None):
-        return SimulatedCallTask(id=d["id"], turns=[
-            SimulatedTurn.from_dict(td, make_prediction=make_prediction) for td in d["turns"]
-            # NOTE: We remove bot turns (type = RESPONSE) for now. If you want
-            #       that too for training models, note the following points:
-            #       1. the simulated bot texts might not be the one used in production
-            #       2. we don't get bot turns in plute production as of now.
-            #       One you have considered both these cases, you can go ahead
-            #       with a parser for bot turns too.
-            if ("type" not in td) or (td["type"] == "INPUT")
-        ])
+        return SimulatedCallTask(
+            id=d["id"],
+            turns=[
+                SimulatedTurn.from_dict(td, make_prediction=make_prediction)
+                for td in d["turns"]
+                # NOTE: We remove bot turns (type = RESPONSE) for now. If you want
+                #       that too for training models, note the following points:
+                #       1. the simulated bot texts might not be the one used in production
+                #       2. we don't get bot turns in plute production as of now.
+                #       One you have considered both these cases, you can go ahead
+                #       with a parser for bot turns too.
+                if ("type" not in td) or (td["type"] == "INPUT")
+            ],
+        )
 
 
 @attr.s(slots=True)
@@ -122,11 +126,7 @@ class CallTranscriptionTurn:
     @staticmethod
     def from_dict(d):
 
-        return CallTranscriptionTurn(
-            id=d["id"],
-            type=d["type"],
-            text=d["text"]
-        )
+        return CallTranscriptionTurn(id=d["id"], type=d["type"], text=d["text"])
 
 
 @attr.s(slots=True)
@@ -140,16 +140,20 @@ class CallTranscriptionTask(Task):
 
     @staticmethod
     def from_dict(d, id):
-        return CallTranscriptionTask(id=d["id"] if "id" in d else id, turns=[
-            CallTranscriptionTurn.from_dict(td) for td in d["turns"]
-            # NOTE: We remove bot turns (type = RESPONSE) for now. If you want
-            #       that too for training models, note the following points:
-            #       1. the simulated bot texts might not be the one used in production
-            #       2. we don't get bot turns in plute production as of now.
-            #       One you have considered both these cases, you can go ahead
-            #       with a parser for bot turns too.
-            if ("type" not in td) or (td["type"] == "INPUT")
-        ])
+        return CallTranscriptionTask(
+            id=d["id"] if "id" in d else id,
+            turns=[
+                CallTranscriptionTurn.from_dict(td)
+                for td in d["turns"]
+                # NOTE: We remove bot turns (type = RESPONSE) for now. If you want
+                #       that too for training models, note the following points:
+                #       1. the simulated bot texts might not be the one used in production
+                #       2. we don't get bot turns in plute production as of now.
+                #       One you have considered both these cases, you can go ahead
+                #       with a parser for bot turns too.
+                if ("type" not in td) or (td["type"] == "INPUT")
+            ],
+        )
 
 
 @attr.s(slots=True)
@@ -193,26 +197,36 @@ class ConversationTask(Task):
 
     @staticmethod
     def from_dict(d):
-        call_uuid = d.get("call_uuid") if d.get("call_uuid") is not None else d.get("call_id")
-        conversation_uuid = d.get("conversation_uuid") if d.get("conversation_uuid") is not None else d.get("conversation_id")
+        call_uuid = (
+            d.get("call_uuid") if d.get("call_uuid") is not None else d.get("call_id")
+        )
+        conversation_uuid = (
+            d.get("conversation_uuid")
+            if d.get("conversation_uuid") is not None
+            else d.get("conversation_id")
+        )
         if call_uuid is None or conversation_uuid is None:
             raise ValueError(f"No reference for call or conversation. {d.keys()}")
         if d.get("alternatives"):
             d["alternatives"] = json.dumps(d["alternatives"], ensure_ascii=False)
-        return ConversationTask(**{
-            **py_.pick(d, [
-                "alternatives",
-                "audio_url",
-                "state",
-                "reftime",
-                "prediction",
-            ]),
-            "data_id": str(conversation_uuid),
-            "raw": d,
-            "call_uuid": str(call_uuid),
-            "conversation_uuid": str(conversation_uuid),
-        })
-
+        return ConversationTask(
+            **{
+                **py_.pick(
+                    d,
+                    [
+                        "alternatives",
+                        "audio_url",
+                        "state",
+                        "reftime",
+                        "prediction",
+                    ],
+                ),
+                "data_id": str(conversation_uuid),
+                "raw": d,
+                "call_uuid": str(call_uuid),
+                "conversation_uuid": str(conversation_uuid),
+            }
+        )
 
 
 @attr.s(slots=True)
@@ -221,6 +235,7 @@ class DataGenerationTask(Task):
     Data Generation Task.
     Direct intent-entity recording job.
     """
+
     id: str = attr.ib()
 
     @staticmethod
