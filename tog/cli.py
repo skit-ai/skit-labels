@@ -17,7 +17,7 @@ def is_timezone(value):
         )
 
 
-def build_download_command(parser: argparse.ArgumentParser) -> None:
+def build_dataset_from_tog_command(parser: argparse.ArgumentParser):
     parser.add_argument(
         "-j",
         "--job-id",
@@ -54,6 +54,37 @@ def build_download_command(parser: argparse.ArgumentParser) -> None:
         default=const.TASK_TYPE__DICT,
         help="Task type for deserialization.",
         choices=const.TASK_TYPES,
+    )
+
+
+def build_dataset_from_dvc_command(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--repo", type=str, required=True, help="DVC enabled git repository."
+    )
+    parser.add_argument("--path", type=str, required=True, help="Path to the dataset.")
+    parser.add_argument(
+        "--remote",
+        type=str,
+        help="Remote. Required only if the repo "
+        "hasn't set a default remote. This is usually a bucket name.",
+    )
+
+
+def build_download_command(parser: argparse.ArgumentParser) -> None:
+    data_source_parsers = parser.add_subparsers(dest="data_source")
+    build_dataset_from_tog_command(
+        data_source_parsers.add_parser(
+            const.SOURCE__DB,
+            help="Download a dataset from tog database.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
+    )
+    build_dataset_from_dvc_command(
+        data_source_parsers.add_parser(
+            const.SOURCE__DVC,
+            help="Download a dataset from a dvc enabled repo.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
     )
 
 
@@ -104,20 +135,21 @@ def build_parser():
 def main():
     parser = build_parser()
     args = parser.parse_args()
-    if args.command == const.DOWNLOAD:
-        sdb, sdb_path = commands.download_dataset(
+    if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
+        df_path = commands.download_dataset_from_db(
             args.job_id,
             args.task_type,
             args.timezone,
             args.full,
             args.batch_size,
+            args.output_format,
         )
-        if args.output_format == const.OUTPUT_FORMAT__CSV:
-            df_path = commands.sdb2df(sdb, args.job_id)
-            print(f"Saved dataframe to {df_path}.")
-            os.remove(sdb_path)
-        else:
-            print(f"Saved sqlite database to {sdb_path}.")
+        print(f"Saved dataframe to {df_path}.")
+    if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DVC:
+        df_path = commands.download_dataset_from_dvc(
+            args.repo, args.path, args.remote
+        )
+        print(f"Saved dataframe to {df_path}.")
     elif args.command == const.DESCRIBE:
         commands.describe_dataset(args.job_id)
     elif args.command == const.STATS:
