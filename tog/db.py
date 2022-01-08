@@ -16,7 +16,7 @@ from tog.types import (AudioSegmentTask, CallTranscriptionTask,
                        SimulatedCallTask, Task)
 
 
-def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
+def build_task(d: Dict, task_type: str, data_id: Optional[str] = None, tz=pytz.UTC) -> Task:
     """
     Create a task from given data dictionary.
     """
@@ -27,7 +27,7 @@ def build_task(d: Dict, task_type: str, data_id: Optional[str] = None) -> Task:
         # Since the reftime from db is in UTC, we convert it to our timezone. This
         # is needed as saying 12 pm means different things in different timezones
         # and can't be translated without doing something stupid.
-        tz = pytz.timezone("Asia/Kolkata")
+        task.reftime = fix_dt.to_datetime(task.reftime)
         task.reftime = task.reftime.astimezone(tz).isoformat()
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
@@ -143,7 +143,7 @@ class Job(AbstractJob):
     A Tog job which specifies a kind of tagging data set and problem.
     """
 
-    def __init__(self, id: int, task_type="conversation", database=None):
+    def __init__(self, id: int, task_type="conversation", database=None, tz=pytz.UTC):
         self.id = id
         # TODO: Check task validity right here
         self.task_type = task_type
@@ -153,6 +153,7 @@ class Job(AbstractJob):
 
         # Cache for keeping rows of job indexed by data_ids
         self.cache = {}
+        self.tz = tz
 
     def _fetch_details(self):
         """
@@ -241,7 +242,7 @@ class Job(AbstractJob):
 
             for row in cur:
                 task_dict, tag, is_gold, tagged_time, data_id = row
-                task = build_task(task_dict, self.task_type, data_id)
+                task = build_task(task_dict, self.task_type, data_id, tz=self.tz)
                 task.is_gold = bool(is_gold)
                 yield task, tag, tagged_time
 
@@ -251,10 +252,11 @@ class JobLocal(AbstractJob):
     A tog job relying on local sqlite database.
     """
 
-    def __init__(self, filepath: str, task_type="conversation"):
+    def __init__(self, filepath: str, task_type="conversation", tz=pytz.UTC):
         self.task_type = task_type
         self.conn = sqlite3.connect(filepath)
         self.cache = {}
+        self.tz = tz
 
     def total(self, untagged=False):
         """
@@ -289,7 +291,7 @@ class JobLocal(AbstractJob):
         except TypeError:
             raise RuntimeError("No item found for given data id")
 
-        task = build_task(json.loads(task_dict), self.task_type)
+        task = build_task(json.loads(task_dict), self.task_type, tz=self.tz)
         task.is_gold = bool(is_gold)
         tag = json.loads(tag_list)
         if show_source:
@@ -323,7 +325,7 @@ class JobLocal(AbstractJob):
                 id_, task_dict, tag, is_gold, tagged_time = row
             else:
                 task_dict, tag, is_gold, tagged_time = row
-            task = build_task(json.loads(task_dict), self.task_type)
+            task = build_task(json.loads(task_dict), self.task_type, tz=self.tz)
             task.is_gold = bool(is_gold)
             if show_source and show_ids:
                 yield id_, task, json.loads(tag), tagged_time, source
