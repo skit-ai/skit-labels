@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import attr
-from fsm_pull.protobuf import convert
 from pydash import py_
 
 
