@@ -102,11 +102,12 @@ def build_stats_command(parser: argparse.ArgumentParser):
         "untagged and pending data points for a given job-id.",
     )
 
+
 def get_version():
-    with open("pyproject.toml") as handle:
+    project_toml = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'pyproject.toml'))
+    with open(project_toml, 'r') as handle:
         project_metadata = toml.load(handle)
-    version = project_metadata["tool"]["poetry"]["version"]
-    return version
+    return project_metadata["tool"]["poetry"]["version"]
 
 
 def build_parser():
