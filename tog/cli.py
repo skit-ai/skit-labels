@@ -102,14 +102,16 @@ def build_stats_command(parser: argparse.ArgumentParser):
         "untagged and pending data points for a given job-id.",
     )
 
-
-def build_parser():
+def get_version():
     with open("pyproject.toml") as handle:
         project_metadata = toml.load(handle)
-
     version = project_metadata["tool"]["poetry"]["version"]
+    return version
+
+
+def build_parser():
     parser = argparse.ArgumentParser(
-        description=f"tog-cli {version}. Command line interface for interacting with data server.",
+        description=f"tog-cli {get_version()}. Command line interface for interacting with data server.",
     )
     command_parsers = parser.add_subparsers(dest="command")
     build_download_command(
