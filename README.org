@@ -29,16 +29,120 @@ export TOGDB_PASS=password
 #+end_src
 
 ** Usage
-For downloading a job data, you first need to know the integer id of that job
-and its task type. Then run something like the following:
+There are a couple of commands that come along with this package. We will snapshot the help message for each here.
+
+The main command is the `tog` command. This was the name of our annotation program. We may generalize it to 
+have a more general name for all dataset requirements.
+
+#+begin_src
+❯ tog -h
+usage: tog [-h] {download,describe,stats} ...
+
+tog-cli 0.3.0. Command line interface for interacting with data server.
+
+positional arguments:
+  {download,describe,stats}
+    download            Download a dataset for a given tog id.
+    describe            Describe a dataset for a given tog id.
+    stats               Get tagged/untagged points for a given tog id.
+
+optional arguments:
+  -h, --help            show this help message and exit
+#+end_src
+
+#+begin_src
+❯ tog download db -h
+usage: tog download db [-h] [-j JOB_ID] [-o {.csv,.sqlite}] [--timezone TIMEZONE]
+                       [--batch-size BATCH_SIZE] [--full]
+                       [--task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -j JOB_ID, --job-id JOB_ID
+                        Id of the tog dataset that we want to download. (default: None)
+  -o {.csv,.sqlite}, --output-format {.csv,.sqlite}
+                        Store dataset in supported formats. (default: None)
+  --timezone TIMEZONE   Timezone to parse datetime values. Like 'America/Los_Angeles',
+                        'Asia/Kolkata' etc. (default: UTC)
+  --batch-size BATCH_SIZE
+                        Number of items to download in a batch. (default: 500)
+  --full                If provided, download all data instead of including untagged
+                        datapoints. (default: False)
+  --task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}
+                        Task type for deserialization. (default: dict)
+#+end_src
+
+#+begin_src
+❯ tog download dvc -h
+usage: tog download dvc [-h] --repo REPO --path PATH [--remote REMOTE]
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --repo REPO      DVC enabled git repository. (default: None)
+  --path PATH      Path to the dataset. (default: None)
+  --remote REMOTE  Remote. Required only if the repo hasn't set a default remote. This is
+                   usually a bucket name. (default: None)
+#+end_src
+
+#+begin_src
+❯ tog describe -h
+usage: tog describe [-h] [--job-id JOB_ID]
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --job-id JOB_ID  Id of the tog dataset that we want to describe.
+#+end_src
+
+#+begin_src
+❯ tog stats -h
+usage: tog stats [-h] [--job-id JOB_ID]
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --job-id JOB_ID  Check the state of the dataset i.e tagged, untagged and pending data
+                   points for a given job-id.
+#-end_src
 
 #+begin_src shell
   tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
 #+end_src
 
-Task type is optional and only needed if you want to do type validation. If you
-don't provide it, we just assume raw dictionary objects. Nevertheless, look in
-=./tog/types.py= for description of various task types. The string identifiers
-to be used in cli can be found in =tog.db.build_task= function.
+** Task Types
 
-For more usage details, try =tog --help=.
+Task type is an optional argument for downloading datasets from tog. Needed if you want to do type validation. 
+If you don't provide it, we just assume raw dictionary objects. The task types are:
+
+  * conversation
+  * simulated_call
+  * audio_segment
+  * dict                  [The default]
+  * call_transcription
+  * data_generation
+
+*** Conversation
+
+This is the most common task type. This accepts data from =skit-calls | skit-fixdf=.
+
+*** Simulated Call
+
+We build an interface to simulate conversation flows without actually deploying ML models.
+For generating NLU training data for a new client, we have a plan to simulate calls covering
+various situations and then voicing over them to generate training data. This has two benefits over our older method:
+
+We don't have to go through test calls twice (once for generating data and second for tagging) 
+The simulator can define conditions and distributions for generating data instead of human callers
+which provide very biased and mostly top level intent data.
+
+*** Call Transcription
+
+Call transcription can be described as the activity where manual effort is used to listen and transcribe the calls.
+Call transcription is essential for training AI models, designing conversation flow and bot prompts.
+A user-friendly UI is the need of the hour for transcribing maximum calls with minimum effort and reasonable accuracy.
+
+*** Data Generation
+
+The interface allows setting intent and optionally entities. Once these are set, the interface allows recording audios 
+repeatedly for rapid generation of data points. This dataset also lacks the structure that a Conversation Task dataset has
+for the very reason that we don't have a flow / ml model deployed to produce these values.
+
+All these datasets may need some pre-processing before we use them for training.
