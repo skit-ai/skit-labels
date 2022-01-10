@@ -31,11 +31,11 @@ export TOGDB_PASS=password
 ** Usage
 There are a couple of commands that come along with this package. We will snapshot the help message for each here.
 
-The main command is the `tog` command. This was the name of our annotation program. We may generalize it to 
+The main command is the =tog= command. This was the name of our annotation program. We may generalize it to 
 have a more general name for all dataset requirements.
 
 #+begin_src
-❯ tog -h
+> tog -h
 usage: tog [-h] {download,describe,stats} ...
 
 tog-cli 0.3.0. Command line interface for interacting with data server.
@@ -50,8 +50,11 @@ optional arguments:
   -h, --help            show this help message and exit
 #+end_src
 
+The following subcommand =download= allows downloading datasets from the database or our dvc repository.
+Either require authentication since these datasets are private.
+
 #+begin_src
-❯ tog download db -h
+> tog download db -h
 usage: tog download db [-h] [-j JOB_ID] [-o {.csv,.sqlite}] [--timezone TIMEZONE]
                        [--batch-size BATCH_SIZE] [--full]
                        [--task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}]
@@ -73,7 +76,7 @@ optional arguments:
 #+end_src
 
 #+begin_src
-❯ tog download dvc -h
+> tog download dvc -h
 usage: tog download dvc [-h] --repo REPO --path PATH [--remote REMOTE]
 
 optional arguments:
@@ -84,8 +87,10 @@ optional arguments:
                    usually a bucket name. (default: None)
 #+end_src
 
+We can =describe= a dataset on tog db using the following command.
+
 #+begin_src
-❯ tog describe -h
+> tog describe -h
 usage: tog describe [-h] [--job-id JOB_ID]
 
 optional arguments:
@@ -93,8 +98,10 @@ optional arguments:
   --job-id JOB_ID  Id of the tog dataset that we want to describe.
 #+end_src
 
+To know the data points that are tagged, untagged, skipped etc we use the =stat= command.
+
 #+begin_src
-❯ tog stats -h
+> tog stats -h
 usage: tog stats [-h] [--job-id JOB_ID]
 
 optional arguments:
@@ -103,8 +110,10 @@ optional arguments:
                    points for a given job-id.
 #-end_src
 
+*** Example
+
 #+begin_src shell
-  tog download --job-id=61 --output-sqlite=job-61.sqlite --task-type audio_segment
+> tog download db --job-id=61 --output-format=.csv --task-type conversation
 #+end_src
 
 ** Task Types
