@@ -4,7 +4,7 @@
 
 Command line interface for interacting with labelled datasets at skit.ai.
 
-** Installation **
+** Installation
 
 #+begin_src shell
 pip install skit-labels
@@ -149,11 +149,38 @@ optional arguments:
                    points for a given job-id.
 #-end_src
 
+#+begin_src
+> skit-labels upload tog -h
+usage: skit-labels upload tog [-h] -j JOB_ID [--url URL] [--token TOKEN] [-i INPUT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -j JOB_ID, --job-id JOB_ID
+                        Dataset id where the data should be uploaded. (default: None)
+  --url URL             URL of the dataset server. Optionally set the DATASET_SERVER_URL
+                        environment variable. (default: None)
+  --token TOKEN         The organization authentication token. (default: fake_access_token)
+  -i INPUT, --input INPUT
+                        The raw data to be uploaded. (default: None)
+#+end_src
+
 *** Example
+
+Download dataset from tog.
 
 #+begin_src shell
 > skit-labels download tog --job-id=61 --output-format=.csv --task-type conversation
 #+end_src
+
+Upload dataset to tog for annotation.
+
+#+begin_src shell
+skit-labels -vvvvv upload tog -j <int> --token=<token> --url https://apigateway.vernacular.ai
+#+end_src
+
+If you have used the [[https://github.com/skit-ai/skit-auth][skit-auth]] command line tool, then we would have saved the token in =~/.skit/config.json=.
+If so, then the =--token= argument is optional. *Do note that the organization information is embedded within the token.*
+*The upload will fail if incorrect token is used for uploading.*
 
 ** Task Types
 
