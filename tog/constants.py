@@ -36,6 +36,7 @@ TASK_TYPES = [
 ]
 
 DOWNLOAD = "download"
+UPLOAD = "upload"
 DESCRIBE = "describe"
 STATS = "stats"
 
@@ -44,3 +45,56 @@ OUTPUT_FORMAT__SQLITE = ".sqlite"
 
 SOURCE__DB = "db"
 SOURCE__DVC = "dvc"
+
+DATASET_SERVER_URL = "DATASET_SERVER_URL"
+DATA = "data"
+DATA_ID = "data_id"
+RAW = "raw"
+CALL_UUID = "call_uuid"
+CONVERSATION_UUID = "conversation_uuid"
+UTTERANCES = "utterances"
+ALTERNATIVES = "alternatives"
+PRIORITY = "priority"
+DATA_SOURCE = "data_source"
+IS_GOLD = "is_gold"
+DEFAULT_SOURCE = "calls"
+
+UPLOAD_DATASET_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "state": {"type": "string"},
+        "reftime": {"type": "string"},
+        "audio_url": {
+            "oneOf": [
+                {"type": "string"},
+                {
+                    "type": "object",
+                    "properties": {
+                        "bucket": {"type": "string"},
+                        "key": {"type": "string"},
+                    },
+                    "required": ["bucket", "key"],
+                },
+            ]
+        },
+        "call_uuid": {"type": "string"},
+        "conversation_uuid": {"type": "string"},
+        "alternatives": {"type": "array"},
+        "filter": {
+            "type": "object",
+            "properties": {
+                "predicted_intent": {"type": "string"},
+                "confidence": {"type": "number"},
+                "current_state": {"type": "string"},
+                "expected_slots": {"type": "array"},
+                "acknowledged_slots": {"type": "array"},
+                "smalltalk": {"type": "boolean"},
+            },
+        },
+    },
+    "required": [
+        "state",
+        "reftime",
+        "audio_url",
+    ],
+}
