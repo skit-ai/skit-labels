@@ -1,4 +1,4 @@
-from tog import __version__, utils
+from skit_labels import __version__, utils
 
 
 def test_version():

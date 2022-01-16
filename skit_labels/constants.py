@@ -43,7 +43,7 @@ STATS = "stats"
 OUTPUT_FORMAT__CSV = ".csv"
 OUTPUT_FORMAT__SQLITE = ".sqlite"
 
-SOURCE__DB = "db"
+SOURCE__DB = "tog"
 SOURCE__DVC = "dvc"
 
 DATASET_SERVER_URL = "DATASET_SERVER_URL"

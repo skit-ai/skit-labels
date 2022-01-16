@@ -12,7 +12,7 @@ import psycopg2
 import pytz
 from skit_fixdf.fix import datetime as fix_dt
 
-from tog.types import (
+from skit_labels.types import (
     AudioSegmentTask,
     CallTranscriptionTask,
     ConversationTask,

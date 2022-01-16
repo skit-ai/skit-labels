@@ -4,16 +4,16 @@ python_version = 3.9
 .PHONY: all test docs
 
 lint:
-	@isort tog
+	@isort skit_labels
 	@isort tests
-	@black tog
+	@black skit_labels
 	@black tests
 
 typecheck:
 	@echo -e "Running type checker"
-	@mypy -p tog
+	@mypy -p skit_labels
 
 test: ## Run the tests.conf
-	@pytest --cov=tog --cov-report html --cov-report term:skip-covered tests/
+	@pytest --cov=skit_labels --cov-report html --cov-report term:skip-covered tests/
 
 all: lint typecheck test

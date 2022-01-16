@@ -1,22 +1,32 @@
-#+TITLE: tog-cli
+#+TITLE: skit-labels
 
 [[tag][file:https://img.shields.io/github/v/tag/Vernacular-ai/tog-cli.svg]] [[https://cheeseshop.vernacular.ai/tog][https://cheeseshop.vernacular.ai/--badger--/tog.svg]] [[ci][https://img.shields.io/github/workflow/status/Vernacular-ai/tog-cli/CI.svg]]
 
-Command line interface for interacting with tog data server. Available on
-internal cheeseshop and can be installed via:
+Command line interface for interacting with labelled datasets at skit.ai.
+
+** Installation **
 
 #+begin_src shell
-pip install tog --extra-index-url https://cheeseshop.vernacular.ai
+pip install skit-labels
 #+end_src
 
-Tog data server is our store of tagged/untagged data. Tagging efforts are
-organized in terms of =jobs= which keep a bunch of =tasks= to be tagged.
+*** Tog Datasets
 
-As of now we only support downloading of data from a certain job in this tool.
-Further development will add more visibility in the stored data, feature to
-upload data etc.
+Tog is our data annotation tool. This data server is our store of tagged/untagged data. 
+Tagging efforts are organized in terms of =jobs= which keep a bunch of =tasks= to be tagged.
+
+We can download and also upload data using this package.
+
+*** DVC Datasets
+
+We maintain an internal repository of datasets to perform common experiments. These are 
+linked on private s3 and are accessible with necessary auth tokens. This tool can be used
+to download the same as mentioned in the usage guide.
+
+We can only download our datasets on dvc for now.
 
 ** Configuration
+
 For almost all commands you will need credentials to be set in a few environment
 variables for the backend. An example follows. You can contact a team member to
 get the credentials for our server.
@@ -29,55 +39,84 @@ export TOGDB_PASS=password
 #+end_src
 
 ** Usage
+
 There are a couple of commands that come along with this package. We will snapshot the help message for each here.
 
-The main command is the =tog= command. This was the name of our annotation program. We may generalize it to 
+The main command is the =skit-labels= command. This was the name of our annotation program. We may generalize it to 
 have a more general name for all dataset requirements.
 
 #+begin_src
-> tog -h
-usage: tog [-h] {download,describe,stats} ...
+> skit-labels -h
+usage: skit-labels [-h] [-v] {download,upload,describe,stats} ...
 
-tog-cli 0.3.0. Command line interface for interacting with data server.
+skit-labels 0.3.1. Command line interface for interacting with labelled datasets.
 
 positional arguments:
-  {download,describe,stats}
-    download            Download a dataset for a given tog id.
+  {download,upload,describe,stats}
+    download            Download a dataset. of a given id from the database.
+    upload              Upload a dataset.
     describe            Describe a dataset for a given tog id.
     stats               Get tagged/untagged points for a given tog id.
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v                    Increase verbosity.
 #+end_src
 
 The following subcommand =download= allows downloading datasets from the database or our dvc repository.
 Either require authentication since these datasets are private.
 
 #+begin_src
-> tog download db -h
-usage: tog download db [-h] [-j JOB_ID] [-o {.csv,.sqlite}] [--timezone TIMEZONE]
-                       [--batch-size BATCH_SIZE] [--full]
-                       [--task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}]
+> skit-labels download -h
+usage: skit-labels download [-h] {db,dvc} ...
+
+positional arguments:
+  {db,dvc}
+    db        Download a dataset of a given id from the database.
+    dvc       Download a dataset from a dvc enabled repo.
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+#+end_src
+
+Since we can download datasets for =tog= and =dvc= we have commands further enabling us to do the same.
+
+#+begin_src
+> skit-labels download tog -h
+usage: skit-labels download tog [-h] -j JOB_ID [-o {.csv,.sqlite}] [-tz TIMEZONE]
+                                [--batch-size BATCH_SIZE] [--full]
+                                [-tt {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}]
+                                [--start-date START_DATE] [--end-date END_DATE]
 
 optional arguments:
   -h, --help            show this help message and exit
   -j JOB_ID, --job-id JOB_ID
                         Id of the tog dataset that we want to download. (default: None)
   -o {.csv,.sqlite}, --output-format {.csv,.sqlite}
-                        Store dataset in supported formats. (default: None)
-  --timezone TIMEZONE   Timezone to parse datetime values. Like 'America/Los_Angeles',
+                        Store dataset in supported formats. (default: .csv)
+  -tz TIMEZONE, --timezone TIMEZONE
+                        Timezone to parse datetime values. Like 'America/Los_Angeles',
                         'Asia/Kolkata' etc. (default: UTC)
   --batch-size BATCH_SIZE
                         Number of items to download in a batch. (default: 500)
   --full                If provided, download all data instead of including untagged
                         datapoints. (default: False)
-  --task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}
-                        Task type for deserialization. (default: dict)
+  -tt {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}, 
+                        --task-type {conversation,simulated_call,audio_segment,dict,call_transcription,data_generation}
+                        Task type for deserialization. (default: conversation)
+  --start-date START_DATE
+                        Filter items added to the dataset after this date. (inclusive)
+                        (default: None)
+  --end-date END_DATE   Filter items added to the dataset before this date. (exclusive)
+                        (default: None)
+
 #+end_src
 
 #+begin_src
-> tog download dvc -h
-usage: tog download dvc [-h] --repo REPO --path PATH [--remote REMOTE]
+> skit-labels download dvc -h
+usage: skit-labels download dvc [-h] --repo REPO --path PATH [--remote REMOTE]
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -90,8 +129,8 @@ optional arguments:
 We can =describe= a dataset on tog db using the following command.
 
 #+begin_src
-> tog describe -h
-usage: tog describe [-h] [--job-id JOB_ID]
+> skit-labels describe -h
+usage: skit-labels describe [-h] [--job-id JOB_ID]
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -101,8 +140,8 @@ optional arguments:
 To know the data points that are tagged, untagged, skipped etc we use the =stat= command.
 
 #+begin_src
-> tog stats -h
-usage: tog stats [-h] [--job-id JOB_ID]
+> skit-labels stats -h
+usage: skit-labels stats [-h] [--job-id JOB_ID]
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -113,7 +152,7 @@ optional arguments:
 *** Example
 
 #+begin_src shell
-> tog download db --job-id=61 --output-format=.csv --task-type conversation
+> skit-labels download tog --job-id=61 --output-format=.csv --task-type conversation
 #+end_src
 
 ** Task Types
@@ -121,10 +160,9 @@ optional arguments:
 Task type is an optional argument for downloading datasets from tog. Needed if you want to do type validation. 
 If you don't provide it, we just assume raw dictionary objects. The task types are:
 
-  * conversation
+  * conversation          [default]
   * simulated_call
   * audio_segment
-  * dict                  [The default]
   * call_transcription
   * data_generation
 

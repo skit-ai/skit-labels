@@ -14,8 +14,8 @@ import pytz
 from loguru import logger
 from tqdm import tqdm
 
-from tog import constants as const
-from tog.db import Job, SqliteDatabase
+from skit_labels import constants as const
+from skit_labels.db import Job, SqliteDatabase
 
 
 def batch_gen(source, n=100):

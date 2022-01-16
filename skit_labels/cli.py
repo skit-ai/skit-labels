@@ -1,5 +1,5 @@
 """
-Command line interface for interacting with a tog data server.
+Command line interface for interacting with a tog datasets.
 """
 import argparse
 import asyncio
@@ -9,9 +9,9 @@ from datetime import datetime
 
 import pytz
 
-from tog import __version__, commands
-from tog import constants as const
-from tog import utils
+from skit_labels import __version__, commands
+from skit_labels import constants as const
+from skit_labels import utils
 
 
 def is_timezone(value: str) -> str:
@@ -182,7 +182,7 @@ def build_stats_command(parser: argparse.ArgumentParser):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description=f"tog-cli {__version__}. Command line interface for interacting with data server.",
+        description=f"skit-labels {__version__}. Command line interface for interacting with labelled datasets.",
     )
     parser.add_argument(
         "-v", action="count", help="Increase verbosity.", dest="verbosity", default=0
@@ -203,12 +203,12 @@ def build_parser():
     )
     build_describe_command(
         command_parsers.add_parser(
-            const.DESCRIBE, help="Describe a dataset for a given tog id."
+            const.DESCRIBE, help="Describe a dataset for a given tog dataset id."
         )
     )
     build_stats_command(
         command_parsers.add_parser(
-            const.STATS, help="Get tagged/untagged points for a given tog id."
+            const.STATS, help="Get tagged/untagged points for a given tog dataset id."
         )
     )
     return parser
