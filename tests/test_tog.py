@@ -1,5 +1,4 @@
-from tog import __version__
-from tog import utils
+from tog import __version__, utils
 
 
 def test_version():
