@@ -111,3 +111,4 @@ dmypy.json
 /.envrc
 *.csv
 *.sqlite
+*.log
