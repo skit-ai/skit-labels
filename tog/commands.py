@@ -1,21 +1,21 @@
 import asyncio
-import os
 import json
-import pytz
+import os
 import tempfile
 from typing import Iterable, List, Optional
 
-import attr
 import aiohttp
-import jsonschema
+import attr
 import dvc.api
+import jsonschema
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+import pytz
 from loguru import logger
+from tqdm import tqdm
 
-from tog.db import Job, SqliteDatabase
 from tog import constants as const
+from tog.db import Job, SqliteDatabase
 
 
 def batch_gen(source, n=100):
@@ -52,7 +52,10 @@ def download_dataset(
     sdb = SqliteDatabase(temp_filepath)
     bar = tqdm(total=job.total(untagged=full))
 
-    for items in batch_gen(job.get(untagged=full, start_date=start_date, end_date=end_date), n=int(batch_size)):
+    for items in batch_gen(
+        job.get(untagged=full, start_date=start_date, end_date=end_date),
+        n=int(batch_size),
+    ):
         rows = []
         for task, tag, tagged_time in items:
             # For raw dictionary type tasks, we don't use attr classes.
@@ -116,7 +119,7 @@ def download_dataset_from_db(
         full,
         batch_size,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
     )
     if output_format == const.OUTPUT_FORMAT__CSV:
         df_path = sdb2df(sdb, job_id)
@@ -126,7 +129,9 @@ def download_dataset_from_db(
         return sdb_path
 
 
-def build_dataset(job_id: str, data_frame: pd.DataFrame, source: Optional[str] = const.DEFAULT_SOURCE) -> List[dict]:
+def build_dataset(
+    job_id: str, data_frame: pd.DataFrame, source: Optional[str] = const.DEFAULT_SOURCE
+) -> List[dict]:
     """
     Build a dataset from the dataframe.
 
@@ -143,7 +148,11 @@ def build_dataset(job_id: str, data_frame: pd.DataFrame, source: Optional[str] =
     logger.debug(f"Pushing {len(data_frame)} items to {job_id=}")
     data_frame.fillna(np.nan, inplace=True)
     data_frame.replace([np.nan], [None], inplace=True)
-    for _, row in tqdm(data_frame.iterrows(), total=len(data_frame), desc="Building a dataset for uploading safely."):
+    for _, row in tqdm(
+        data_frame.iterrows(),
+        total=len(data_frame),
+        desc="Building a dataset for uploading safely.",
+    ):
         dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
 
         if const.RAW in data_frame.columns:
@@ -151,7 +160,11 @@ def build_dataset(job_id: str, data_frame: pd.DataFrame, source: Optional[str] =
         else:
             data = row.to_dict()
 
-        alternatives = data[const.UTTERANCES] if const.UTTERANCES in data else data[const.ALTERNATIVES]
+        alternatives = (
+            data[const.UTTERANCES]
+            if const.UTTERANCES in data
+            else data[const.ALTERNATIVES]
+        )
         if not alternatives:
             alternatives = []
 
@@ -175,14 +188,18 @@ def build_dataset(job_id: str, data_frame: pd.DataFrame, source: Optional[str] =
     return dataset
 
 
-async def upload_dataset(session: aiohttp.ClientSession, job_id:str, dataset: List[dict]):
+async def upload_dataset(
+    session: aiohttp.ClientSession, job_id: str, dataset: List[dict]
+):
     path = f"/tog/tasks/?job_id={job_id}"
     async with session.post(path, json=dataset) as response:
         upload_response = await response.json()
         return (upload_response, response.status)
 
 
-async def upload_dataset_batches(dataset_chunks: Iterable[List[dict]], url: str, token: str, job_id: str) -> str:
+async def upload_dataset_batches(
+    dataset_chunks: Iterable[List[dict]], url: str, token: str, job_id: str
+) -> str:
     """
     Post the dataset to the server.
 
@@ -197,11 +214,15 @@ async def upload_dataset_batches(dataset_chunks: Iterable[List[dict]], url: str,
     """
     headers = {"Authorization": f"Bearer {token}"}
     async with aiohttp.ClientSession(url, headers=headers) as session:
-        requests = [upload_dataset(session, job_id, dataset) for dataset in dataset_chunks]
+        requests = [
+            upload_dataset(session, job_id, dataset) for dataset in dataset_chunks
+        ]
         return await asyncio.gather(*requests)
 
 
-async def upload_dataset_to_db(input_file: str, url: str, token: str, job_id: str) -> str:
+async def upload_dataset_to_db(
+    input_file: str, url: str, token: str, job_id: str
+) -> str:
     """
     Uploads a dataset to the database.
 

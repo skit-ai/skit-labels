@@ -1,15 +1,17 @@
 """
 Command line interface for interacting with a tog data server.
 """
-import os
-import sys
-import pytz
 import argparse
 import asyncio
+import os
+import sys
 from datetime import datetime
 
+import pytz
+
+from tog import __version__, commands
 from tog import constants as const
-from tog import commands, utils, __version__
+from tog import utils
 
 
 def is_timezone(value: str) -> str:
@@ -21,7 +23,7 @@ def is_timezone(value: str) -> str:
 
 
 def is_numeric(value: str) -> str:
-    if not isinstance(value, str): 
+    if not isinstance(value, str):
         raise argparse.ArgumentTypeError(f"{value} is not a string.")
     if not value.isdigit():
         raise argparse.ArgumentTypeError(f"{value} is not a numeric value.")
@@ -77,8 +79,16 @@ def build_dataset_from_tog_command(parser: argparse.ArgumentParser):
         help="Task type for deserialization.",
         choices=const.TASK_TYPES,
     )
-    parser.add_argument("--start-date", type=date_type, help="Filter items added to the dataset after this date. (inclusive)")
-    parser.add_argument("--end-date", type=date_type, help="Filter items added to the dataset before this date. (exclusive)")
+    parser.add_argument(
+        "--start-date",
+        type=date_type,
+        help="Filter items added to the dataset after this date. (inclusive)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=date_type,
+        help="Filter items added to the dataset before this date. (exclusive)",
+    )
 
 
 def build_dataset_from_dvc_command(parser: argparse.ArgumentParser) -> None:
@@ -130,7 +140,7 @@ def upload_dataset_to_tog_command(parser: argparse.ArgumentParser) -> None:
         "--token",
         type=str,
         help="The organization authentication token.",
-        default=utils.read_session()
+        default=utils.read_session(),
     )
     parser.add_argument(
         "-i",
@@ -153,7 +163,10 @@ def build_upload_command(parser: argparse.ArgumentParser) -> None:
 
 def build_describe_command(parser: argparse.ArgumentParser):
     parser.add_argument(
-        "--job-id", type=is_numeric, required=True, help="Id of the tog dataset that we want to describe."
+        "--job-id",
+        type=is_numeric,
+        required=True,
+        help="Id of the tog dataset that we want to describe.",
     )
 
 
@@ -171,7 +184,9 @@ def build_parser():
     parser = argparse.ArgumentParser(
         description=f"tog-cli {__version__}. Command line interface for interacting with data server.",
     )
-    parser.add_argument("-v", action="count", help="Increase verbosity.", dest="verbosity", default=0)
+    parser.add_argument(
+        "-v", action="count", help="Increase verbosity.", dest="verbosity", default=0
+    )
     command_parsers = parser.add_subparsers(dest="command")
     build_download_command(
         command_parsers.add_parser(
@@ -216,25 +231,32 @@ def main():
         )
         print(df_path)
     elif args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DVC:
-        df_path = commands.download_dataset_from_dvc(
-            args.repo, args.path, args.remote
-        )
+        df_path = commands.download_dataset_from_dvc(args.repo, args.path, args.remote)
         print(df_path)
     elif args.command == const.UPLOAD and args.data_source == const.SOURCE__DB:
         if not args.token:
-            raise ValueError("Token is required for uploading to the database." 
-            "Use [skit-auth](https://github.com/skit-ai/skit-auth) to obtain the token.")
+            raise ValueError(
+                "Token is required for uploading to the database."
+                "Use [skit-auth](https://github.com/skit-ai/skit-auth) to obtain the token."
+            )
 
         if args.input is None:
             is_pipe = not os.isatty(sys.stdin.fileno())
             if is_pipe:
                 args.input = sys.stdin.readline().strip()
             else:
-                raise argparse.ArgumentTypeError("Expected to receive --input=<file> or its valued piped in.")
+                raise argparse.ArgumentTypeError(
+                    "Expected to receive --input=<file> or its valued piped in."
+                )
 
-        asyncio.run(commands.upload_dataset_to_db(
-            args.input, args.url, args.token, job_id=args.job_id, 
-        ))
+        asyncio.run(
+            commands.upload_dataset_to_db(
+                args.input,
+                args.url,
+                args.token,
+                job_id=args.job_id,
+            )
+        )
     elif args.command == const.DESCRIBE:
         commands.describe_dataset(args.job_id)
     elif args.command == const.STATS:
