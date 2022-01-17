@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.2
+
+- [x] refactor: dependency on skit-fixdf removed.
+
 ## 0.3.1
 
 - [x] feat: Upload datasets via cli.
