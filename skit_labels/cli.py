@@ -180,7 +180,7 @@ def build_stats_command(parser: argparse.ArgumentParser):
     )
 
 
-def build_parser():
+def build_cli():
     parser = argparse.ArgumentParser(
         description=f"skit-labels {__version__}. Command line interface for interacting with labelled datasets.",
     )
@@ -215,7 +215,7 @@ def build_parser():
 
 
 def main():
-    parser = build_parser()
+    parser = build_cli()
     args = parser.parse_args()
     utils.configure_logger(args.verbosity)
     if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
