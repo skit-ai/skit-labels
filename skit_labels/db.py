@@ -6,11 +6,12 @@ import json
 import os
 import sqlite3
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import psycopg2
 import pytz
 from skit_fixdf.fix import datetime as fix_dt
+from skit_labels import constants as const
 
 from skit_labels.types import (
     AudioSegmentTask,
@@ -99,14 +100,29 @@ class Database:
     Class holding connection with backend database.
     """
 
-    def __init__(self):
-        self._initialize()
+    def __init__(
+        self,
+        db: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+    ):
+        self._initialize(db=db, user=user, password=password, host=host, port=port)
 
-    def _initialize(self):
-        host = os.getenv("TOGDB_HOST")
-        user = os.getenv("TOGDB_USER")
-        password = os.getenv("TOGDB_PASS")
-        port = os.getenv("TOGDB_PORT", "5432")
+    def _initialize(
+        self,
+        db: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[int, str]] = None,
+    ):
+        db = db or os.getenv(const.TOGDB_DB, "tog")
+        user = user or os.getenv(const.TOGDB_USER)
+        password = password or os.getenv(const.TOGDB_PASSWORD)
+        host = host or os.getenv(const.TOGDB_HOST, "localhost")
+        port = port or os.getenv(const.TOGDB_PORT, "5432")
 
         if password is None:
             raise ValueError(
@@ -114,7 +130,7 @@ class Database:
             )
 
         self.conn = psycopg2.connect(
-            host=host, database="tog", user=user, password=password, port=port
+            host=host, database=db, user=user, password=password, port=port
         )
 
     def list_jobs(self) -> List[Dict]:
@@ -164,12 +180,25 @@ class Job(AbstractJob):
     A Tog job which specifies a kind of tagging data set and problem.
     """
 
-    def __init__(self, id: int, task_type="conversation", database=None, tz=pytz.UTC):
+    def __init__(
+        self,
+        id: int,
+        task_type="conversation",
+        database: Optional[str] = None,
+        tz=pytz.UTC,
+        db: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
+    ):
         self.id = id
         # TODO: Check task validity right here
         self.task_type = task_type
 
-        self.db = database or Database()
+        self.db = database or Database(
+            db=db, user=user, password=password, host=host, port=port
+        )
         self._fetch_details()
 
         # Cache for keeping rows of job indexed by data_ids

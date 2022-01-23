@@ -2,6 +2,7 @@
 Command line interface for interacting with a tog datasets.
 """
 import argparse
+from ast import arg
 import asyncio
 import os
 import sys
@@ -37,7 +38,7 @@ def date_type(value: str):
         raise argparse.ArgumentTypeError(f"Invalid date {value}, expected YYYY-MM-DD.")
 
 
-def build_dataset_from_tog_command(parser: argparse.ArgumentParser):
+def create_job_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument(
         "-j",
         "--job-id",
@@ -45,6 +46,48 @@ def build_dataset_from_tog_command(parser: argparse.ArgumentParser):
         required=True,
         help="Id of the tog dataset that we want to download.",
     )
+    parser.add_argument(
+        "--db", type=str, help="Database name.", default=os.environ.get(const.TOGDB_DB)
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        help="Database host.",
+        default=os.environ.get(const.TOGDB_HOST),
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        help="Database port.",
+        default=os.environ.get(const.TOGDB_PORT),
+    )
+    parser.add_argument(
+        "--user",
+        type=str,
+        help="Database user.",
+        default=os.environ.get(const.TOGDB_USER),
+    )
+    parser.add_argument(
+        "--password",
+        type=str,
+        help="Database password.",
+        default=os.environ.get(const.TOGDB_PASSWORD),
+    )
+    return parser
+
+
+def add_job_args(fn):
+    def wrapper(*args, **kwargs):
+        parser = fn(*args, **kwargs)
+        return create_job_args(parser)
+
+    return wrapper
+
+
+@add_job_args
+def build_dataset_from_tog_command(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     parser.add_argument(
         "-o",
         "--output-format",
@@ -89,9 +132,12 @@ def build_dataset_from_tog_command(parser: argparse.ArgumentParser):
         type=date_type,
         help="Filter items added to the dataset before this date. (exclusive)",
     )
+    return parser
 
 
-def build_dataset_from_dvc_command(parser: argparse.ArgumentParser) -> None:
+def build_dataset_from_dvc_command(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo", type=str, required=True, help="DVC enabled git repository."
     )
@@ -102,9 +148,10 @@ def build_dataset_from_dvc_command(parser: argparse.ArgumentParser) -> None:
         help="Remote. Required only if the repo "
         "hasn't set a default remote. This is usually a bucket name.",
     )
+    return parser
 
 
-def build_download_command(parser: argparse.ArgumentParser) -> None:
+def build_download_command(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     data_source_parsers = parser.add_subparsers(dest="data_source")
     build_dataset_from_tog_command(
         data_source_parsers.add_parser(
@@ -120,16 +167,12 @@ def build_download_command(parser: argparse.ArgumentParser) -> None:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
     )
+    return parser
 
 
-def upload_dataset_to_tog_command(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "-j",
-        "--job-id",
-        type=is_numeric,
-        required=True,
-        help="Dataset id where the data should be uploaded.",
-    )
+def upload_dataset_to_tog_command(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     parser.add_argument(
         "--url",
         type=str,
@@ -148,6 +191,7 @@ def upload_dataset_to_tog_command(parser: argparse.ArgumentParser) -> None:
         type=str,
         help="The raw data to be uploaded.",
     )
+    return parser
 
 
 def build_upload_command(parser: argparse.ArgumentParser) -> None:
@@ -158,25 +202,6 @@ def build_upload_command(parser: argparse.ArgumentParser) -> None:
             help="Upload a dataset to the database. Creates a new dataset if dataset id not provided",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
-    )
-
-
-def build_describe_command(parser: argparse.ArgumentParser):
-    parser.add_argument(
-        "--job-id",
-        type=is_numeric,
-        required=True,
-        help="Id of the tog dataset that we want to describe.",
-    )
-
-
-def build_stats_command(parser: argparse.ArgumentParser):
-    parser.add_argument(
-        "--job-id",
-        type=is_numeric,
-        required=True,
-        help="Check the state of the dataset i.e tagged, "
-        "untagged and pending data points for a given job-id.",
     )
 
 
@@ -201,12 +226,12 @@ def build_cli():
             help="Upload a dataset.",
         )
     )
-    build_describe_command(
+    create_job_args(
         command_parsers.add_parser(
             const.DESCRIBE, help="Describe a dataset for a given tog dataset id."
         )
     )
-    build_stats_command(
+    create_job_args(
         command_parsers.add_parser(
             const.STATS, help="Get tagged/untagged points for a given tog dataset id."
         )
@@ -226,6 +251,11 @@ def cmd_to_str(args: argparse.Namespace) -> str:
             output_format=args.output_format,
             start_date=args.start_date,
             end_date=args.end_date,
+            db=args.db,
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
         )
     elif args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DVC:
         return commands.download_dataset_from_dvc(args.repo, args.path, args.remote)
@@ -256,11 +286,27 @@ def cmd_to_str(args: argparse.Namespace) -> str:
 
         if errors:
             error_summary = "\n".join(set(errors))
-            return f"Encountered {len(errors)} over {df_size}.\nSummary:\n{error_summary}."
+            return (
+                f"Encountered {len(errors)} over {df_size}.\nSummary:\n{error_summary}."
+            )
     elif args.command == const.DESCRIBE:
-        return commands.describe_dataset(args.job_id)
+        return commands.describe_dataset(
+            args.job_id,
+            db=args.db,
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+        )
     elif args.command == const.STATS:
-        return commands.stat_dataset(args.job_id)
+        return commands.stat_dataset(
+            args.job_id,
+            db=args.db,
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+        )
 
 
 def main():
@@ -272,4 +318,3 @@ def main():
         print(message[0])
     else:
         print(message)
-
