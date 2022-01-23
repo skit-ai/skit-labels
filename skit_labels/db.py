@@ -237,6 +237,17 @@ class Job(AbstractJob):
                 self.cache[id] = (task, tag, tagged_time)
             return task, tag, tagged_time
 
+    def type(self):
+        """
+        List all available job_ids
+        """
+        with self.db.conn.cursor(name="data_cursor") as cursor:
+            cursor.execute('select "taskType" from jobs_job where id = %s', (self.id,))
+            record = cursor.fetchone()
+            if record:
+                return record[0]
+            raise ValueError(f"Invalid job id {self.id}")
+
     def get(
         self,
         untagged=False,

@@ -266,5 +266,10 @@ def cmd_to_str(args: argparse.Namespace) -> str:
 def main():
     parser = build_cli()
     args = parser.parse_args()
-    message_to_stdout = cmd_to_str(args)
-    print(message_to_stdout)
+    message = cmd_to_str(args)
+    if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
+        # Since the first element is the file, message[1] is the dataset type.
+        print(message[0])
+    else:
+        print(message)
+
