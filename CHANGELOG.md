@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.5
+
+- [x] update: CLI allows database params as input.
+
 ## 0.3.4
 
 - [x] update: obtain type of the dataset from `Job::type()`.
