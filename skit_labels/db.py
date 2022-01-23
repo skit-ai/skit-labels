@@ -239,14 +239,16 @@ class Job(AbstractJob):
 
         with self.db.conn.cursor() as cur:
             cur.execute(
-                f"""SELECT 
-                        count(*) 
-                    FROM jobs_task 
-                    WHERE
-                        job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}
-                        {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
-                        {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
-                    """)
+                f"""
+                SELECT count(*) FROM jobs_task INNER JOIN jobs_data ON
+                    jobs_data.id = jobs_task.data_id
+                WHERE
+                    jobs_task.job_id = {self.id}
+                    {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
+                    {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                    {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
+                """
+            )
             n = cur.fetchone()[0]
         return n
 
@@ -263,13 +265,19 @@ class Job(AbstractJob):
 
         with self.db.conn.cursor() as cur:
             cur.execute(
-            f"""SELECT
-                jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time
-            FROM jobs_task INNER JOIN jobs_data ON jobs_data.id = jobs_task.data_id
-            WHERE 
-                jobs_task.job_id = {self.id} AND jobs_data.data_id = '{id}'
+            f"""
+            SELECT
+                jobs_data.data,
+                jobs_task.tag,
+                jobs_task.is_gold,
+                jobs_task.tagged_time,
+                jobs_data.id
+            FROM jobs_task INNER JOIN jobs_data ON
+                jobs_data.id = jobs_task.data_id
+            WHERE
+                jobs_task.job_id = {self.id} AND jobs_data.data_id = {id}
                 {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
-                {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
+                {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}            
             """
             )
             try:
