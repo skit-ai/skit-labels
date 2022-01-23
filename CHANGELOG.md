@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.4
+
+- [x] update: obtain type of the dataset from `Job::type()`.
+
 ## 0.3.3
 
 - [x] refactor: no difference in usage.
