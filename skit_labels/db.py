@@ -186,6 +186,8 @@ class Job(AbstractJob):
         task_type="conversation",
         database: Optional[str] = None,
         tz=pytz.UTC,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         db: Optional[str] = None,
         user: Optional[str] = None,
         password: Optional[str] = None,
@@ -204,6 +206,11 @@ class Job(AbstractJob):
         # Cache for keeping rows of job indexed by data_ids
         self.cache = {}
         self.tz = tz
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def __repr__(self):
+        f"Job {self.id}: {self.name} [language: {self.lang}]\n{self.description}"
 
     def _fetch_details(self):
         """
@@ -222,20 +229,28 @@ class Job(AbstractJob):
             except TypeError:
                 raise ValueError("Invalid job id")
 
-    def total(self, untagged=False):
+    def total(self, untagged=False, start_date=None, end_date=None):
         """
         Return total number of items for this job. If `untagged` is True, consider
         untagged items in counting too.
         """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
 
         with self.db.conn.cursor() as cur:
             cur.execute(
-                f"SELECT count(*) FROM jobs_task WHERE job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}"
-            )
+                f"""SELECT 
+                        count(*) 
+                    FROM jobs_task 
+                    WHERE
+                        job_id = {self.id} {'' if untagged else 'AND tag IS NOT NULL'}
+                        {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                        {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
+                    """)
             n = cur.fetchone()[0]
         return n
 
-    def get_by_data_id(self, id: int, cache=True):
+    def get_by_data_id(self, id: int, cache=True, start_date=None, end_date=None):
         """
         Return task and tag using the data id
         """
@@ -243,16 +258,20 @@ class Job(AbstractJob):
         if id in self.cache:
             return self.cache[id]
 
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
         with self.db.conn.cursor() as cur:
             cur.execute(
-                f"""SELECT
-              jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time
-            FROM jobs_task INNER JOIN jobs_data ON
-              jobs_data.id = jobs_task.data_id
-            WHERE jobs_task.job_id = {self.id} AND jobs_data.data_id = '{id}'
+            f"""SELECT
+                jobs_data.data, jobs_task.tag, jobs_task.is_gold, jobs_task.tagged_time
+            FROM jobs_task INNER JOIN jobs_data ON jobs_data.id = jobs_task.data_id
+            WHERE 
+                jobs_task.job_id = {self.id} AND jobs_data.data_id = '{id}'
+                {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
             """
             )
-
             try:
                 task_dict, tag_list, is_gold, tagged_time = cur.fetchone()
             except TypeError:
@@ -293,6 +312,9 @@ class Job(AbstractJob):
         for checking, say, production metrics. If `only_gold` is True, return
         only items which are marked as gold.
         """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
         query = f"""
         SELECT
             jobs_data.data,
