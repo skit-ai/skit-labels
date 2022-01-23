@@ -106,7 +106,7 @@ def describe_dataset(
     host: Optional[str] = None,
     port: Optional[Union[int, str]] = None,
 ) -> str:
-    job_ = job or Job(
+    return job or Job(
         int(job_id),
         db=db,
         user=user,
@@ -114,8 +114,6 @@ def describe_dataset(
         host=host,
         port=port,
     )
-
-    return f"Job {job_.id}: {job_.name} [language: {job_.lang}]\n{job_.description}"
 
 
 def stat_dataset(
