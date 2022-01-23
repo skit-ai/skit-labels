@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.3
+
+- [x] refactor: no difference in usage.
+
 ## 0.3.2
 
 - [x] refactor: dependency on skit-fixdf removed.
