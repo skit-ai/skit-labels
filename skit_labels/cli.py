@@ -47,6 +47,16 @@ def create_job_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         help="Id of the tog dataset that we want to download.",
     )
     parser.add_argument(
+        "--start-date",
+        type=date_type,
+        help="Filter items added to the dataset after this date. (inclusive)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=date_type,
+        help="Filter items added to the dataset before this date. (exclusive)",
+    )
+    parser.add_argument(
         "--db", type=str, help="Database name.", default=os.environ.get(const.TOGDB_DB)
     )
     parser.add_argument(
@@ -121,16 +131,6 @@ def build_dataset_from_tog_command(
         default=const.TASK_TYPE__CONVERSATION,
         help="Task type for deserialization.",
         choices=const.TASK_TYPES,
-    )
-    parser.add_argument(
-        "--start-date",
-        type=date_type,
-        help="Filter items added to the dataset after this date. (inclusive)",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=date_type,
-        help="Filter items added to the dataset before this date. (exclusive)",
     )
     return parser
 
@@ -292,6 +292,8 @@ def cmd_to_str(args: argparse.Namespace) -> str:
     elif args.command == const.DESCRIBE:
         return commands.describe_dataset(
             args.job_id,
+            start_date=args.start_date,
+            end_date=args.end_date,
             db=args.db,
             host=args.host,
             port=args.port,
