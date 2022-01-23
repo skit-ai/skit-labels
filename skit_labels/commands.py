@@ -53,6 +53,8 @@ def download_dataset(
         int(job_id),
         task_type=task_type,
         tz=timezone,
+        start_date=start_date,
+        end_date=end_date,
         db=db,
         user=user,
         password=password,
@@ -119,14 +121,18 @@ def describe_dataset(
 def stat_dataset(
     job_id: Optional[int] = None,
     job: Optional[Job] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Optional[str] = None,
     user: Optional[str] = None,
     password: Optional[str] = None,
     host: Optional[str] = None,
     port: Optional[Union[int, str]] = None,
-) -> str:
+) -> dict:
     job_ = job or Job(
         int(job_id),
+        start_date=start_date,
+        end_date=end_date,
         db=db,
         user=user,
         password=password,
