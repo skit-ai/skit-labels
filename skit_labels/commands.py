@@ -139,7 +139,15 @@ def stat_dataset(
     )
     n_total = job_.total(untagged=True)
     n_tagged = job_.total()
-    return f"Total items {n_total}. Tagged {n_tagged}. Untagged {n_total - n_tagged}."
+    return {
+        const.TOTAL: n_total,
+        const.TAGGED: n_tagged,
+        const.UNTAGGED: n_total - n_tagged,
+    }
+
+
+def print_job_stats(job_stats: dict) -> str:
+    return json.dumps(job_stats, indent=2)
 
 
 def download_dataset_from_dvc(
