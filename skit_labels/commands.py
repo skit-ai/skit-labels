@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import tempfile
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 import aiohttp
 import attr
@@ -81,16 +81,16 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
     return output_file
 
 
-def describe_dataset(job_id: Optional[int] = None, job: Optional[Job] = None):
+def describe_dataset(job_id: Optional[int] = None, job: Optional[Job] = None) -> str:
     job_ = job or Job(job_id)
-    print(f"Job {job_.id}: {job_.name} [language: {job_.lang}]\n{job_.description}")
+    return f"Job {job_.id}: {job_.name} [language: {job_.lang}]\n{job_.description}"
 
 
-def stat_dataset(job_id: Optional[int] = None, job: Optional[Job] = None):
+def stat_dataset(job_id: Optional[int] = None, job: Optional[Job] = None) -> str:
     job_ = job or Job(job_id)
     n_total = job_.total(untagged=True)
     n_tagged = job_.total()
-    print(f"Total items {n_total}. Tagged {n_tagged}. Untagged {n_total - n_tagged}.")
+    return f"Total items {n_total}. Tagged {n_tagged}. Untagged {n_total - n_tagged}."
 
 
 def download_dataset_from_dvc(repo: str, path: str, remote: Optional[str] = None):
@@ -222,7 +222,7 @@ async def upload_dataset_batches(
 
 async def upload_dataset_to_db(
     input_file: str, url: str, token: str, job_id: str
-) -> str:
+) -> Tuple[List[str], int]:
     """
     Uploads a dataset to the database.
 
@@ -238,14 +238,18 @@ async def upload_dataset_to_db(
     :rtype: str
     """
     _, extension = os.path.splitext(input_file)
+
     if extension != ".csv":
         raise ValueError("Expected file extension to be a csv.")
+
     data_frame = pd.read_csv(input_file)
     dataset = build_dataset(job_id, data_frame, token)
     batched_dataset = batch_gen(dataset)
     responses = await upload_dataset_batches(batched_dataset, url, token, job_id)
+    errors = []
+
     for message, status_code in responses:
         if status_code != 200:
+            errors.append(message)
             logger.error(message)
-
-    return job_id
+    return errors, len(data_frame)
