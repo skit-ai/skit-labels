@@ -6,6 +6,7 @@ import asyncio
 import os
 import sys
 from datetime import datetime
+from typing import Optional
 
 import pytz
 
@@ -214,12 +215,10 @@ def build_cli():
     return parser
 
 
-def main():
-    parser = build_cli()
-    args = parser.parse_args()
+def cmd_to_str(args: argparse.Namespace) -> str:
     utils.configure_logger(args.verbosity)
     if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
-        df_path = commands.download_dataset_from_db(
+        return commands.download_dataset_from_db(
             args.job_id,
             args.task_type,
             args.timezone,
@@ -229,10 +228,8 @@ def main():
             start_date=args.start_date,
             end_date=args.end_date,
         )
-        print(df_path)
     elif args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DVC:
-        df_path = commands.download_dataset_from_dvc(args.repo, args.path, args.remote)
-        print(df_path)
+        return commands.download_dataset_from_dvc(args.repo, args.path, args.remote)
     elif args.command == const.UPLOAD and args.data_source == const.SOURCE__DB:
         if not args.token:
             raise ValueError(
@@ -249,7 +246,7 @@ def main():
                     "Expected to receive --input=<file> or its valued piped in."
                 )
 
-        asyncio.run(
+        errors, df_size = asyncio.run(
             commands.upload_dataset_to_db(
                 args.input,
                 args.url,
@@ -257,7 +254,18 @@ def main():
                 job_id=args.job_id,
             )
         )
+
+        if errors:
+            error_summary = "\n".join(set(errors))
+            return f"Encountered {len(errors)} over {df_size}.\nSummary:\n{error_summary}."
     elif args.command == const.DESCRIBE:
-        commands.describe_dataset(args.job_id)
+        return commands.describe_dataset(args.job_id)
     elif args.command == const.STATS:
-        commands.stat_dataset(args.job_id)
+        return commands.stat_dataset(args.job_id)
+
+
+def main():
+    parser = build_cli()
+    args = parser.parse_args()
+    message_to_stdout = cmd_to_str(args)
+    print(message_to_stdout)
