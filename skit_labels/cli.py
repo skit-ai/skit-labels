@@ -318,5 +318,7 @@ def main():
     if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
         # Since the first element is the file, message[1] is the dataset type.
         print(message[0])
+    elif args.command == const.STATS:
+        print(commands.print_job_stats(message))
     else:
         print(message)
