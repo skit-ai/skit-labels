@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.6
+
+- [x] update: dataset {stat, describe} can apply date ranges.
+
 ## 0.3.5
 
 - [x] update: CLI allows database params as input.
