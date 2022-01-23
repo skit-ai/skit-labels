@@ -6,7 +6,6 @@ import asyncio
 import os
 import sys
 from datetime import datetime
-from typing import Optional
 
 import pytz
 
