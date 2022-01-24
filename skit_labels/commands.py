@@ -318,7 +318,7 @@ async def upload_dataset_to_db(
     errors = []
 
     for message, status_code in responses:
-        if status_code != 200:
+        if status_code not in [200, 201]:
             errors.append(message)
-            logger.error(message)
+            logger.error(f"{status_code}: {message}")
     return errors, len(data_frame)
