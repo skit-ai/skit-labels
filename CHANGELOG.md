@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.7 
+
+- [x] fix: bug preventing data uploads due to larger than supported values in source.
+
 ## 0.3.6
 
 - [x] update: dataset {stat, describe} can apply date ranges.
