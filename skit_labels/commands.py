@@ -100,7 +100,7 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
 def describe_dataset(
     job_id: Optional[int] = None,
     job: Optional[Job] = None,
-    db: Optional[str] = None,    
+    db: Optional[str] = None,
     user: Optional[str] = None,
     password: Optional[str] = None,
     host: Optional[str] = None,

@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Union
 import psycopg2
 import pytz
 from skit_fixdf.fix import datetime as fix_dt
-from skit_labels import constants as const
 
+from skit_labels import constants as const
 from skit_labels.types import (
     AudioSegmentTask,
     CallTranscriptionTask,
@@ -265,7 +265,7 @@ class Job(AbstractJob):
 
         with self.db.conn.cursor() as cur:
             cur.execute(
-            f"""
+                f"""
             SELECT
                 jobs_data.data,
                 jobs_task.tag,

@@ -2,10 +2,10 @@
 Command line interface for interacting with a tog datasets.
 """
 import argparse
-from ast import arg
 import asyncio
 import os
 import sys
+from ast import arg
 from datetime import datetime
 
 import pytz
@@ -237,7 +237,6 @@ def build_cli():
         )
     )
     return parser
-
 
 
 def upload_dataset(input_file, url, token, job_id):
