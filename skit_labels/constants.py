@@ -57,7 +57,7 @@ ALTERNATIVES = "alternatives"
 PRIORITY = "priority"
 DATA_SOURCE = "data_source"
 IS_GOLD = "is_gold"
-DEFAULT_SOURCE = "calls"
+DEFAULT_SOURCE = "cal"
 
 UPLOAD_DATASET_SCHEMA = {
     "type": "object",
