@@ -239,6 +239,19 @@ def build_cli():
     return parser
 
 
+
+def upload_dataset(input_file, url, token, job_id):
+    errors, df_size = asyncio.run(
+        commands.upload_dataset_to_db(
+            input_file,
+            url,
+            token,
+            job_id,
+        )
+    )
+    return errors, df_size
+
+
 def cmd_to_str(args: argparse.Namespace) -> str:
     utils.configure_logger(args.verbosity)
     if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
@@ -275,14 +288,7 @@ def cmd_to_str(args: argparse.Namespace) -> str:
                     "Expected to receive --input=<file> or its valued piped in."
                 )
 
-        errors, df_size = asyncio.run(
-            commands.upload_dataset_to_db(
-                args.input,
-                args.url,
-                args.token,
-                job_id=args.job_id,
-            )
-        )
+        upload_dataset(args.input, args.url, args.token, args.job_id)
 
         if errors:
             error_summary = "\n".join(set(errors))
