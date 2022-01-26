@@ -1,5 +1,10 @@
 # CHANGELOG
 
+
+## 0.3.8
+
+- [x] update: remove preprocessing over df.
+
 ## 0.3.7 
 
 - [x] fix: bug preventing data uploads due to larger than supported values in source.
