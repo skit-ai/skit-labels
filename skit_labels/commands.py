@@ -223,11 +223,17 @@ def build_dataset(
         desc="Building a dataset for uploading safely.",
     ):
         dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
-
+        errors = []
         if const.RAW in data_frame.columns:
             data = json.loads(row[const.RAW])
         else:
             data = row.to_dict()
+
+        alternatives = data.get(const.UTTERANCES, [])
+        try:
+            alternatives = json.loads(alternatives) if isinstance(alternatives, str) else alternatives
+        except json.JSONDecodeError:
+            raise ValueError(f"{alternatives} of type {type(alternatives)} is not a valid json string.")
 
         data_point = {
             const.PRIORITY: 1,
@@ -237,12 +243,17 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: data.get(const.UTTERANCES, []),
+                const.ALTERNATIVES: alternatives,
             },
             const.IS_GOLD: False,
         }
-        jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
-        dataset.append(data_point)
+        try:
+            jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
+            dataset.append(data_point)
+        except jsonschema.exceptions.ValidationError as e:
+            errors.append(e)
+            if len(errors) > len(data_frame) * 0.5:
+                raise RuntimeError(f"Too many errors: {errors}")
     return dataset
 
 
@@ -251,7 +262,7 @@ async def upload_dataset(
 ):
     path = f"/tog/tasks/?job_id={job_id}"
     async with session.post(path, json=dataset) as response:
-        upload_response = await response.json()
+        upload_response = await response.json(content_type=None)
         return (upload_response, response.status)
 
 
@@ -301,7 +312,7 @@ async def upload_dataset_to_db(
         raise ValueError("Expected file extension to be a csv.")
 
     data_frame = pd.read_csv(input_file)
-    dataset = build_dataset(job_id, data_frame, token)
+    dataset = build_dataset(job_id, data_frame)
     batched_dataset = batch_gen(dataset)
     responses = await upload_dataset_batches(batched_dataset, url, token, job_id)
     errors = []
