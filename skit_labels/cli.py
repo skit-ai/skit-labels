@@ -297,9 +297,8 @@ def cmd_to_str(args: argparse.Namespace) -> str:
         errors, df_size = upload_dataset(args.input, args.url, args.token, args.job_id)
 
         if errors:
-            error_summary = "\n".join(set(errors))
             return (
-                f"Encountered {len(errors)} over {df_size}.\nSummary:\n{error_summary}."
+                f"Encountered {len(errors)} over {df_size}.\nSummary:\n{errors}."
             )
     elif args.command == const.DESCRIBE:
         return commands.describe_dataset(
