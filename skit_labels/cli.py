@@ -191,6 +191,13 @@ def upload_dataset_to_tog_command(
         type=str,
         help="The raw data to be uploaded.",
     )
+    parser.add_argument(
+        "-j",
+        "--job-id",
+        type=is_numeric,
+        required=True,
+        help="Id of the tog dataset that we want to download.",
+    )
     return parser
 
 
@@ -287,7 +294,7 @@ def cmd_to_str(args: argparse.Namespace) -> str:
                     "Expected to receive --input=<file> or its valued piped in."
                 )
 
-        upload_dataset(args.input, args.url, args.token, args.job_id)
+        errors, df_size = upload_dataset(args.input, args.url, args.token, args.job_id)
 
         if errors:
             error_summary = "\n".join(set(errors))
