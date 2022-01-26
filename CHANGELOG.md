@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.10
+
+- [x] update: Higher tolerance for dataset schema errors.
 
 ## 0.3.9
 
