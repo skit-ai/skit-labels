@@ -1,6 +1,10 @@
 # CHANGELOG
 
 
+## 0.3.9
+
+- [x] fix: -j added back to upload dataset command.
+
 ## 0.3.8
 
 - [x] update: remove preprocessing over df.
