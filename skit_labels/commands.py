@@ -229,17 +229,6 @@ def build_dataset(
         else:
             data = row.to_dict()
 
-        alternatives = (
-            data[const.UTTERANCES]
-            if const.UTTERANCES in data
-            else data[const.ALTERNATIVES]
-        )
-        if not alternatives:
-            alternatives = []
-
-        if isinstance(alternatives, str):
-            alternatives = json.loads(alternatives)
-
         data_point = {
             const.PRIORITY: 1,
             const.DATA_SOURCE: source,
@@ -248,7 +237,7 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: alternatives,
+                const.ALTERNATIVES: data.get(const.UTTERANCES, []),
             },
             const.IS_GOLD: False,
         }
