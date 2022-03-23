@@ -1,5 +1,11 @@
 # CHANGELOG
 
+
+## 0.3.11
+
+- [x] update: deps for compatibility with skit-pipelines.
+
+
 ## 0.3.10
 
 - [x] update: Higher tolerance for dataset schema errors.
