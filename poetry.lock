@@ -1123,7 +1123,7 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "5a8e373c10cd85976f161e6e805b9ee7a8dfc57bd3db430f6a72de87c5e8c49a"
+content-hash = "92b8f00325f33a624ce6bd14d3ad8f33cd4ff0cf935b7d5f5bf5792c257787c5"
 
 [metadata.files]
 aiobotocore = [
