@@ -247,7 +247,7 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[const.UTTERANCES,]),
+                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[const.UTTERANCES]),
             },
             const.IS_GOLD: False,
         }
