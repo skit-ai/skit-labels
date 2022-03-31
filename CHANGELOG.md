@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.16
+
+- [x] update: Data upload is more tolerant or utterance json vs python object.
+
 ## 0.3.15
 
 - [x] update: JSON fields are stringified.
