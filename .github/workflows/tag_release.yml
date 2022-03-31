@@ -1,4 +1,4 @@
-name: Skit-Calls Tag Publish CI
+name: Skit-Labels Tag Publish CI
 
 on:
   push:
