@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.13
+
+- [x] update: describe and stat dataset requires database object instance optionally.
 
 ## 0.3.11
 
