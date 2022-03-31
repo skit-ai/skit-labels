@@ -184,7 +184,7 @@ class Job(AbstractJob):
         self,
         id: int,
         task_type="conversation",
-        database: Optional[str] = None,
+        database: Optional[Database] = None,
         tz=pytz.UTC,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
