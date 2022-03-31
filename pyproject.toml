@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "skit-labels"
-version = "0.3.13"
+version = "0.3.14"
 description = "Command line tool for interacting with labelled datasets at skit.ai."
 authors = []
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-attrs = "^19.3.0"
+attrs = "^21.4.0"
 pydash = "^5.1.0"
 docopt = "^0.6.2"
 tqdm = "^4.63.0"
