@@ -57,7 +57,7 @@ def download_dataset(
         tz=timezone,
         start_date=start_date,
         end_date=end_date,
-        database=database
+        database=database,
     )
     describe_dataset(job_id, job=job)
     stat_dataset(job_id, job=job)
@@ -76,7 +76,15 @@ def download_dataset(
             task_dict = task if isinstance(task, dict) else attr.asdict(task)
 
             # TODO: is_gold might not be working for dict type tasks as of now
-            rows.append((task.id, json.dumps(task_dict), json.dumps(tag), task.is_gold, tagged_time))
+            rows.append(
+                (
+                    task.id,
+                    json.dumps(task_dict),
+                    json.dumps(tag),
+                    task.is_gold,
+                    tagged_time,
+                )
+            )
 
         sdb.insert_rows(rows)
         bar.update(n=len(items))
@@ -198,11 +206,15 @@ def extract_utterances_safely(conversation_uuid, utterances):
     if not isinstance(utterances, (list, str)):
         return []
     try:
-        utterances = json.loads(utterances) if isinstance(utterances, str) else utterances
+        utterances = (
+            json.loads(utterances) if isinstance(utterances, str) else utterances
+        )
     except json.JSONDecodeError:
         utterances = ast.literal_eval(utterances) if isinstance(utterances, str) else []
     except Exception as e:
-        logger.warning(f"{conversation_uuid} has invalid utterances: {utterances}, setting to [].")
+        logger.warning(
+            f"{conversation_uuid} has invalid utterances: {utterances}, setting to []."
+        )
         logger.warning(e)
         utterances = []
     return utterances
