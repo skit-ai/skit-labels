@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.14
+
+- [x] update: JSON fields are stringified.
+
 ## 0.3.13
 
 - [x] update: describe and stat dataset requires database object instance optionally.
