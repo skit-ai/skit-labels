@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import json
 import os
@@ -193,6 +194,20 @@ def download_dataset_from_db(
         return sdb_path, dataset_type
 
 
+def extract_utterances_safely(conversation_uuid, utterances):
+    if not isinstance(utterances, (list, str)):
+        return []
+    try:
+        utterances = json.loads(utterances) if isinstance(utterances, str) else utterances
+    except json.JSONDecodeError:
+        utterances = ast.literal_eval(utterances) if isinstance(utterances, str) else []
+    except Exception as e:
+        logger.warning(f"{conversation_uuid} has invalid utterances: {utterances}, setting to [].")
+        logger.warning(e)
+        utterances = []
+    return utterances
+
+
 def build_dataset(
     job_id: str, data_frame: pd.DataFrame, source: Optional[str] = const.DEFAULT_SOURCE
 ) -> List[dict]:
@@ -224,12 +239,6 @@ def build_dataset(
         else:
             data = row.to_dict()
 
-        alternatives = data.get(const.UTTERANCES, [])
-        try:
-            alternatives = json.loads(alternatives) if isinstance(alternatives, str) else alternatives
-        except json.JSONDecodeError:
-            raise ValueError(f"{alternatives} of type {type(alternatives)} is not a valid json string.")
-
         data_point = {
             const.PRIORITY: 1,
             const.DATA_SOURCE: source,
@@ -238,7 +247,7 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: alternatives,
+                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[const.UTTERANCES,]),
             },
             const.IS_GOLD: False,
         }
