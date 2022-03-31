@@ -58,8 +58,8 @@ def download_dataset(
         end_date=end_date,
         database=database
     )
-    describe_dataset(job_id, database=database)
-    stat_dataset(job_id, database=database)
+    describe_dataset(job_id, job=job)
+    stat_dataset(job_id, job=job)
 
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
@@ -72,13 +72,10 @@ def download_dataset(
         rows = []
         for task, tag, tagged_time in items:
             # For raw dictionary type tasks, we don't use attr classes.
-            if isinstance(task, dict):
-                task_dict = task
-            else:
-                task_dict = attr.asdict(task)
+            task_dict = task if isinstance(task, dict) else attr.asdict(task)
 
             # TODO: is_gold might not be working for dict type tasks as of now
-            rows.append((task.id, task_dict, tag, task.is_gold, tagged_time))
+            rows.append((task.id, json.dumps(task_dict), json.dumps(tag), task.is_gold, tagged_time))
 
         sdb.insert_rows(rows)
         bar.update(n=len(items))
@@ -90,6 +87,7 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
         prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV
     )
     df = pd.read_sql_query("SELECT * FROM data", sdb.conn)
+    df
     df.to_csv(output_file, index=False)
     return output_file
 
@@ -97,7 +95,6 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
 def describe_dataset(
     job_id: Optional[int] = None,
     job: Optional[Job] = None,
-    database: Optional[Database] = None,
     db: Optional[str] = None,
     user: Optional[str] = None,
     password: Optional[str] = None,
@@ -106,7 +103,6 @@ def describe_dataset(
 ) -> str:
     return job or Job(
         int(job_id),
-        database=database,
         db=db,
         user=user,
         password=password,
@@ -120,7 +116,6 @@ def stat_dataset(
     job: Optional[Job] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    database: Optional[Database] = None,
     db: Optional[str] = None,
     user: Optional[str] = None,
     password: Optional[str] = None,
@@ -131,7 +126,6 @@ def stat_dataset(
         int(job_id),
         start_date=start_date,
         end_date=end_date,
-        database=database,
         db=db,
         user=user,
         password=password,
