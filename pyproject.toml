@@ -27,6 +27,7 @@ skit-fixdf = "^0.1.12"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.scripts]
 skit-labels = "skit_labels.cli:main"
