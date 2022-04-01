@@ -28,9 +28,13 @@ jobs:
     - name: Install dependencies
       run: |
         poetry install --no-root
+        python -m pip install coverage pytest-cov
+    
     - name: Test with pytest and get Coverage
       run: |
-        poetry run make test
+        poetry run pytest --cov=skit_labels --cov-report=xml tests/
+        coverage report | tee cov.out
+    
     - name: Build and Publish to PYPI
       env:
         TWINE_USERNAME: __token__
