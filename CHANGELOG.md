@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.17
+
+- [x] update: gh actions script updates.
+
 ## 0.3.16
 
 - [x] update: Data upload is more tolerant or utterance json vs python object.
