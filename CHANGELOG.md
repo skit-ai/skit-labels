@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.18
+
+- [x] add: Support for legacy dataframes with alternatives.
+
 ## 0.3.17
 
 - [x] update: gh actions script updates.
