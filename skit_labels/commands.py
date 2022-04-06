@@ -250,7 +250,9 @@ def build_dataset(
             data = json.loads(row[const.RAW])
         else:
             data = row.to_dict()
-
+        
+        utterances = row.get(const.UTTERANCES]) or row.get(const.ALTERNATIVES, [])
+        
         data_point = {
             const.PRIORITY: 1,
             const.DATA_SOURCE: source,
@@ -259,7 +261,7 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[const.UTTERANCES]),
+                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], utterances),
             },
             const.IS_GOLD: False,
         }
