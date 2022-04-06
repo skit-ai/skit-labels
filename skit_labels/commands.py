@@ -250,9 +250,13 @@ def build_dataset(
             data = json.loads(row[const.RAW])
         else:
             data = row.to_dict()
-        
-        utterances = row.get(const.UTTERANCES]) or row.get(const.ALTERNATIVES, [])
-        
+        utterance_columns = {const.UTTERANCES, const.ALTERNATIVES}
+
+        if not data_frame.columns.intersection(utterance_columns):
+            raise ValueError(f"Expected one of {const.UTTERANCES} or {const.ALTERNATIVES} "
+            "columns in the dataframe. {data_frame.columns}")
+        utterance_col = const.UTTERANCES if const.UTTERANCES in data_frame.columns else const.ALTERNATIVES
+
         data_point = {
             const.PRIORITY: 1,
             const.DATA_SOURCE: source,
@@ -261,7 +265,7 @@ def build_dataset(
                 **data,
                 const.CALL_UUID: str(row[const.CALL_UUID]),
                 const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], utterances),
+                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[utterance_col]),
             },
             const.IS_GOLD: False,
         }
