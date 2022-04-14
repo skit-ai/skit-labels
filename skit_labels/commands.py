@@ -252,7 +252,7 @@ def build_dataset(
             data = row.to_dict()
         utterance_columns = {const.UTTERANCES, const.ALTERNATIVES}
 
-        if not data_frame.columns.intersection(utterance_columns):
+        if data_frame.columns.intersection(utterance_columns).empty:
             raise ValueError(f"Expected one of {const.UTTERANCES} or {const.ALTERNATIVES} "
             "columns in the dataframe. {data_frame.columns}")
         utterance_col = const.UTTERANCES if const.UTTERANCES in data_frame.columns else const.ALTERNATIVES
