@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.19
+
+- [x] fix: Parse timezone from strings.
+
 ## 0.3.18
 
 - [x] add: Support for legacy dataframes with alternatives.
