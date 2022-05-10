@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.21
+
+- [x] update: Dedupe id uses uuid4 at runtime.
+
 ## 0.3.20
 
 - [x] fix: Parse timezone from strings.
