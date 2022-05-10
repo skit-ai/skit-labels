@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.3.19
+## 0.3.20
 
 - [x] fix: Parse timezone from strings.
 
