@@ -1,4 +1,5 @@
 import ast
+import uuid
 import asyncio
 import json
 import os
@@ -244,7 +245,8 @@ def build_dataset(
         total=len(data_frame),
         desc="Building a dataset for uploading safely.",
     ):
-        dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
+        conversation_uuid = row[const.CONVERSATION_UUID]
+        dedupe_id = f"{conversation_uuid}_{uuid.uuid4().hex}"
         errors = []
         if const.RAW in data_frame.columns:
             data = json.loads(row[const.RAW])
