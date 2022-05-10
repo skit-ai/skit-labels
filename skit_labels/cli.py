@@ -20,7 +20,7 @@ def is_timezone(value: str) -> str:
         raise argparse.ArgumentTypeError(
             f"Unknown timezone {value}. Lookup `pytz.all_timezones`."
         )
-    return value
+    return pytz.timezone(value)
 
 
 def is_numeric(value: str) -> str:
