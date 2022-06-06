@@ -135,6 +135,14 @@ def build_dataset_from_tog_command(
     return parser
 
 
+def build_dataset_from_labelstudio_command(
+    parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
+    parser.add_argument("--url", type=str, required=True, help="Service url where labelstudio is hosted.")
+    parser.add_argument("--token", type=str, required=True, help="The authentication token from https://labelstud.io/api#section/Authentication.")
+    parser.add_argument("--job-id", type=str, required=True, help="The labelstudio project-id to which the dataset belongs.")
+
+
 def build_dataset_from_dvc_command(
     parser: argparse.ArgumentParser,
 ) -> argparse.ArgumentParser:
@@ -167,6 +175,45 @@ def build_download_command(parser: argparse.ArgumentParser) -> argparse.Argument
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
     )
+    build_dataset_from_labelstudio_command(
+        data_source_parsers.add_parser(
+            const.SOURCE__LABELSTUDIO,
+            help="Download a dataset from labelstudio.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
+    )
+    return parser
+
+
+def upload_dataset_to_labelstudio_command(
+    parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
+    parser.add_argument(
+        "--url",
+        type=str,
+        help="Service url where labelstudio is hosted.",
+        required=True
+    )
+    parser.add_argument(
+        "--token",
+        type=str,
+        help="The authentication token from https://labelstud.io/api#section/Authentication.",
+        required=True
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        help="The file (path) to be uploaded.",
+        required=True
+    )
+    parser.add_argument(
+        "-j",
+        "--project-id",
+        type=is_numeric,
+        required=True,
+        help="Upload dataset to given project-id.",
+    )
     return parser
 
 
@@ -189,14 +236,14 @@ def upload_dataset_to_tog_command(
         "-i",
         "--input",
         type=str,
-        help="The raw data to be uploaded.",
+        help="The file (path) to be uploaded.",
     )
     parser.add_argument(
         "-j",
         "--job-id",
         type=is_numeric,
         required=True,
-        help="Id of the tog dataset that we want to download.",
+        help="Upload dataset to given job-id.",
     )
     return parser
 
@@ -206,7 +253,14 @@ def build_upload_command(parser: argparse.ArgumentParser) -> None:
     upload_dataset_to_tog_command(
         data_source_parsers.add_parser(
             const.SOURCE__DB,
-            help="Upload a dataset to the database. Creates a new dataset if dataset id not provided",
+            help="Upload a dataset to tog.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
+    )
+    upload_dataset_to_labelstudio_command(
+        data_source_parsers.add_parser(
+            const.SOURCE__LABELSTUDIO,
+            help="Upload a dataset to labelstudio.",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
     )
@@ -246,13 +300,17 @@ def build_cli():
     return parser
 
 
-def upload_dataset(input_file, url, token, job_id):
+def upload_dataset(input_file, url, token, job_id, data_source):
+    if data_source == const.SOURCE__DB:
+        fn = commands.upload_dataset_to_db
+    elif data_source == const.SOURCE__LABELSTUDIO:
+        fn = commands.upload_dataset_to_labelstudio
     errors, df_size = asyncio.run(
-        commands.upload_dataset_to_db(
+        fn(
             input_file,
             url,
             token,
-            job_id,
+            job_id
         )
     )
     return errors, df_size
@@ -278,7 +336,14 @@ def cmd_to_str(args: argparse.Namespace) -> str:
         )
     elif args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DVC:
         return commands.download_dataset_from_dvc(args.repo, args.path, args.remote)
-    elif args.command == const.UPLOAD and args.data_source == const.SOURCE__DB:
+    elif args.command == const.DOWNLOAD and args.data_source == const.SOURCE__LABELSTUDIO:
+        fn = commands.download_dataset_from_labelstudio(
+            args.url,
+            args.token,
+            args.job_id,
+        )
+        return asyncio.run(fn)
+    elif args.command == const.UPLOAD and args.data_source in [const.SOURCE__DB, const.SOURCE__LABELSTUDIO]:
         if not args.token:
             raise ValueError(
                 "Token is required for uploading to the database."
@@ -294,7 +359,7 @@ def cmd_to_str(args: argparse.Namespace) -> str:
                     "Expected to receive --input=<file> or its valued piped in."
                 )
 
-        errors, df_size = upload_dataset(args.input, args.url, args.token, args.job_id)
+        errors, df_size = upload_dataset(args.input, args.url, args.token, args.job_id, args.data_source)
 
         if errors:
             return (
@@ -326,7 +391,7 @@ def main():
     parser = build_cli()
     args = parser.parse_args()
     message = cmd_to_str(args)
-    if args.command == const.DOWNLOAD and args.data_source == const.SOURCE__DB:
+    if args.command == const.DOWNLOAD and args.data_source in [const.SOURCE__DB, const.SOURCE__LABELSTUDIO]:
         # Since the first element is the file, message[1] is the dataset type.
         print(message[0])
     elif args.command == const.STATS:
