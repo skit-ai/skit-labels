@@ -165,6 +165,28 @@ def download_dataset_from_dvc(
     return output_file
 
 
+async def download_dataset_from_labelstudio(
+    url: str,
+    token: str,
+    project_id: Union[int, str]
+) -> Tuple[str, str]:
+    """
+    Download dataset from labelstudio
+    """
+    _, output_file = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__CSV)
+    headers = {
+        "Authorization": f"token {token}",
+    }
+    async with aiohttp.ClientSession(url, headers=headers) as session:
+        async with session.get(url=f"/api/projects/{project_id}/export?exportType=CSV") as response:
+            if response.status != 200:
+                error_message = await response.text()
+                raise Exception(f"Error downloading dataset: {error_message} {response.status} ")
+            async with aiofiles.open(output_file, mode='wb') as f:
+                await f.write(await response.read())
+    return output_file, "csv"
+
+
 def download_dataset_from_db(
     job_id: str,
     task_type: str,
