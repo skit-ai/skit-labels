@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 from typing import Iterable, List, Optional, Tuple, Union
+import aiofiles
 
 import aiohttp
 import attr
