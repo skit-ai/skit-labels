@@ -80,8 +80,8 @@ def download_dataset(
             rows.append(
                 (
                     task.id,
-                    json.dumps(task_dict),
-                    json.dumps(tag),
+                    task_dict,
+                    tag,
                     task.is_gold,
                     tagged_time,
                 )
@@ -97,7 +97,6 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
         prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV
     )
     df = pd.read_sql_query("SELECT * FROM data", sdb.conn)
-    df
     df.to_csv(output_file, index=False)
     return output_file
 
