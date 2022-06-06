@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.22
+
+- [x] feat: Add labelstudio integration. We can upload/download datasets to labelstudio.
+
 ## 0.3.21
 
 - [x] update: Dedupe id uses uuid4 at runtime.
