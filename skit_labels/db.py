@@ -72,7 +72,8 @@ class SqliteDatabase:
             data TEXT NOT NULL,
             tag TEXT NOT NULL,
             is_gold BOOLEAN NOT NULL,
-            tagged_time TEXT
+            tagged_time TEXT,
+            job_id TEXT NOT NULL
         )"""
         )
         self.conn.commit()
@@ -85,12 +86,13 @@ class SqliteDatabase:
         - tag: Dict
         - is_gold: bool
         - tagged_time: Optional[str]
+        - job_id: str
         """
 
         c = self.conn.cursor()
         c.executemany(
-            "INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
-            [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows],
+            "INSERT INTO data (data_id, data, tag, is_gold, tagged_time, job_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [(i, json.dumps(d), json.dumps(t), g, tt, ji) for i, d, t, g, tt, ji in rows],
         )
         self.conn.commit()
 
