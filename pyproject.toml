@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "skit-labels"
-version = "0.3.22"
+version = "0.3.23"
 description = "Command line tool for interacting with labelled datasets at skit.ai."
 authors = []
 license = "MIT"
@@ -24,6 +24,7 @@ aiohttp = "^3.8.1"
 numpy = "^1.22.3"
 pandas = "^1.4.1"
 skit-fixdf = "^0.1.12"
+aiofiles = "^0.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
