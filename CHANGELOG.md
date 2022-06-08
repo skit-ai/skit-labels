@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.3.23
+
+- [x] add: job-id to dataset.
+- [x] add: json cols are unpacked.
+
 ## 0.3.22
 
 - [x] feat: Add labelstudio integration. We can upload/download datasets to labelstudio.
