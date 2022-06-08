@@ -335,6 +335,11 @@ async def upload_dataset_batches(
         return await asyncio.gather(*requests)
 
 
+async def upload_file(input_file: str, project_id: str, session: aiohttp.ClientSession) -> str:
+    with open(input_file, "rb") as f:
+        return await session.post(f"/api/projects/{project_id}/import", data={"file": f})
+
+
 async def upload_dataset_to_labelstudio(
     input_file: str,
     url: str,
@@ -349,14 +354,14 @@ async def upload_dataset_to_labelstudio(
     """
     headers = {"Authorization": f"token {token}"}
     async with aiohttp.ClientSession(url, headers=headers) as session:
-        with open(input_file, "rb") as f:
-            response = await session.post(f"/api/projects/{project_id}/import", data={"file": f})
-            if response.status != 201:
-                error_message = await response.text()
-                raise RuntimeError(f"Failed to upload dataset to LabelStudio: {error_message}, {response.status}")
-            else:
-                response = await response.json()
-                return [], response["task_count"]
+        response = await upload_file(input_file, project_id, session)
+
+        if response.status != 201:
+            error_message = await response.text()
+            raise RuntimeError(f"Failed to upload dataset to LabelStudio: {error_message}, {response.status}")
+        else:
+            response = await response.json()
+            return [], response["task_count"]
 
 
 async def upload_dataset_to_db(
