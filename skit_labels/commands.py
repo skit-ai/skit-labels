@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import tempfile
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import aiofiles
 
 import aiohttp
@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from loguru import logger
+from requests import JSONDecodeError
 from tqdm import tqdm
 
 from skit_labels import constants as const
@@ -94,11 +95,30 @@ def download_dataset(
     return sdb, temp_filepath, job.type()
 
 
+def parse_json(data: str) -> Dict[str, Any]:
+    try:
+        data = json.loads(data)
+        data = data if isinstance(data, dict) else json.loads(data)
+        return data
+    except JSONDecodeError:
+        return {}
+
+
+def unpack(df: pd.DataFrame) -> pd.DataFrame:
+    df.data = df.data.apply(parse_json)
+    df_dict = df.to_dict(orient="records")
+    df = pd.json_normalize(df_dict)
+    columns = {col: col.replace("data.", "") for col in df.columns if col.startswith("data.") and "data_id" not in col}
+    df.rename(columns=columns, inplace=True)
+    return df
+
+
 def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
     _, output_file = tempfile.mkstemp(
         prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV
     )
     df = pd.read_sql_query("SELECT * FROM data", sdb.conn)
+    df = unpack(df)
     df.to_csv(output_file, index=False)
     return output_file
 
