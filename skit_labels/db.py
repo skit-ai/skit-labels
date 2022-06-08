@@ -10,8 +10,8 @@ from typing import Dict, List, Optional, Union
 
 import psycopg2
 import pytz
-from skit_fixdf.fix import datetime as fix_dt
 
+from skit_labels.utils import to_datetime
 from skit_labels import constants as const
 from skit_labels.types import (
     AudioSegmentTask,
@@ -37,7 +37,7 @@ def build_task(
         # Since the reftime from db is in UTC, we convert it to our timezone. This
         # is needed as saying 12 pm means different things in different timezones
         # and can't be translated without doing something stupid.
-        task.reftime = fix_dt.to_datetime(task.reftime)
+        task.reftime = to_datetime(task.reftime)
         task.reftime = task.reftime.astimezone(tz).isoformat()
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
