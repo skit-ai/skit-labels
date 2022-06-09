@@ -329,7 +329,10 @@ async def upload_dataset(
 ):
     path = f"/tog/tasks/?job_id={job_id}"
     async with session.post(path, json=dataset) as response:
-        upload_response = await response.json(content_type=None)
+        if str(response.status).startswith("2"):
+            upload_response = await response.json()
+        else:
+            raise Exception(f"Error uploading dataset: {response.status} {await response.text()}")
         return (upload_response, response.status)
 
 
