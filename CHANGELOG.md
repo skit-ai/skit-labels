@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.24
+
+- [x] add: error handling for uploads.
+
 ## 0.3.23
 
 - [x] add: job-id to dataset.
