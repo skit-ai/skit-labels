@@ -12,8 +12,8 @@ from typing import Dict, List, Optional, Union
 
 import psycopg2
 import pytz
-from skit_fixdf.fix import datetime as fix_dt
 
+from skit_labels.utils import to_datetime
 from skit_labels import constants as const
 from skit_labels.types import (
     AudioSegmentTask,
@@ -39,7 +39,7 @@ def build_task(
         # Since the reftime from db is in UTC, we convert it to our timezone. This
         # is needed as saying 12 pm means different things in different timezones
         # and can't be translated without doing something stupid.
-        task.reftime = fix_dt.to_datetime(task.reftime)
+        task.reftime = to_datetime(task.reftime)
         task.reftime = task.reftime.astimezone(tz).isoformat()
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
@@ -74,7 +74,8 @@ class SqliteDatabase:
             data TEXT NOT NULL,
             tag TEXT NOT NULL,
             is_gold BOOLEAN NOT NULL,
-            tagged_time TEXT
+            tagged_time TEXT,
+            job_id TEXT NOT NULL
         )"""
         )
         self.conn.commit()
@@ -87,12 +88,13 @@ class SqliteDatabase:
         - tag: Dict
         - is_gold: bool
         - tagged_time: Optional[str]
+        - job_id: str
         """
 
         c = self.conn.cursor()
         c.executemany(
-            "INSERT INTO data (data_id, data, tag, is_gold, tagged_time) VALUES (?, ?, ?, ?, ?)",
-            [(i, json.dumps(d), json.dumps(t), g, tt) for i, d, t, g, tt in rows],
+            "INSERT INTO data (data_id, data, tag, is_gold, tagged_time, job_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [(i, json.dumps(d), json.dumps(t), g, tt, ji) for i, d, t, g, tt, ji in rows],
         )
         self.conn.commit()
 
@@ -186,7 +188,7 @@ class Job(AbstractJob):
         self,
         id: int,
         task_type="conversation",
-        database: Optional[str] = None,
+        database: Optional[Database] = None,
         tz=pytz.UTC,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,

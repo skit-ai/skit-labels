@@ -1,5 +1,5 @@
-SHELL := /bin/zsh
-python_version = 3.9
+SHELL := /bin/bash
+python_version = 3.10
 
 .PHONY: all test docs
 

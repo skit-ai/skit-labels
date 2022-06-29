@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## 0.3.24
+
+- [x] add: error handling for uploads.
+
+## 0.3.23
+
+- [x] add: job-id to dataset.
+- [x] add: json cols are unpacked.
+
+## 0.3.22
+
+- [x] feat: Add labelstudio integration. We can upload/download datasets to labelstudio.
+
+## 0.3.21
+
+- [x] update: Dedupe id uses uuid4 at runtime.
+
+## 0.3.20
+
+- [x] fix: Parse timezone from strings.
+
+## 0.3.18
+
+- [x] add: Support for legacy dataframes with alternatives.
+
+## 0.3.17
+
+- [x] update: gh actions script updates.
+
+## 0.3.16
+
+- [x] update: Data upload is more tolerant or utterance json vs python object.
+
+## 0.3.15
+
+- [x] update: JSON fields are stringified.
+
+## 0.3.13
+
+- [x] update: describe and stat dataset requires database object instance optionally.
+
+## 0.3.11
+
+- [x] update: deps for compatibility with skit-pipelines.
+
+
 ## 0.3.10
 
 - [x] update: Higher tolerance for dataset schema errors.

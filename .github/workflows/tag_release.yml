@@ -1,0 +1,47 @@
+name: Skit-Labels Tag Publish CI
+
+on:
+  push:
+     tags:
+     - '*'
+jobs:
+  build-n-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: false
+        virtualenvs-in-project: false
+        installer-parallel: false
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-root
+        python -m pip install coverage pytest-cov
+    
+    - name: Test with pytest and get Coverage
+      run: |
+        poetry run pytest --cov=skit_labels --cov-report=xml tests/
+        coverage report | tee cov.out
+    
+    - name: Build and Publish to PYPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.SKIT_LABELS_TOKEN }}
+      run: |
+        poetry version $(git describe --tags --abbrev=0)
+        pip install setuptools wheel twine
+        python -m pip install build --user
+        python -m build --sdist --wheel --outdir dist/
+        twine upload dist/*

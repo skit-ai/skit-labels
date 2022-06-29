@@ -1,9 +1,12 @@
+import ast
+import uuid
 import asyncio
 import ast
 import json
 import os
 import tempfile
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+import aiofiles
 
 import aiohttp
 import attr
@@ -13,10 +16,11 @@ import numpy as np
 import pandas as pd
 import pytz
 from loguru import logger
+from requests import JSONDecodeError
 from tqdm import tqdm
 
 from skit_labels import constants as const
-from skit_labels.db import Job, SqliteDatabase
+from skit_labels.db import Database, Job, SqliteDatabase
 
 
 def batch_gen(source, n=100):
@@ -50,20 +54,17 @@ def download_dataset(
     host: Optional[str] = None,
     port: Optional[Union[int, str]] = None,
 ) -> Tuple[SqliteDatabase, str, str]:
+    database = Database(user=user, password=password, host=host, port=port)
     job = Job(
         int(job_id),
         task_type=task_type,
         tz=timezone,
         start_date=start_date,
         end_date=end_date,
-        db=db,
-        user=user,
-        password=password,
-        host=host,
-        port=port,
+        database=database,
     )
-    describe_dataset(job_id)
-    stat_dataset(job_id)
+    describe_dataset(job_id, job=job)
+    stat_dataset(job_id, job=job)
 
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
@@ -75,17 +76,41 @@ def download_dataset(
         rows = []
         for task, tag, tagged_time in items:
             # For raw dictionary type tasks, we don't use attr classes.
-            if isinstance(task, dict):
-                task_dict = task
-            else:
-                task_dict = attr.asdict(task)
+            task_dict = task if isinstance(task, dict) else attr.asdict(task)
 
             # TODO: is_gold might not be working for dict type tasks as of now
-            rows.append((task.id, task_dict, tag, task.is_gold, tagged_time))
+            rows.append(
+                (
+                    task.id,
+                    task_dict,
+                    tag,
+                    task.is_gold,
+                    tagged_time,
+                    job_id
+                )
+            )
 
         sdb.insert_rows(rows)
         bar.update(n=len(items))
     return sdb, temp_filepath, job.type()
+
+
+def parse_json(data: str) -> Dict[str, Any]:
+    try:
+        data = json.loads(data)
+        data = data if isinstance(data, dict) else json.loads(data)
+        return data
+    except JSONDecodeError:
+        return {}
+
+
+def unpack(df: pd.DataFrame) -> pd.DataFrame:
+    df.data = df.data.apply(parse_json)
+    df_dict = df.to_dict(orient="records")
+    df = pd.json_normalize(df_dict)
+    columns = {col: col.replace("data.", "") for col in df.columns if col.startswith("data.") and "data_id" not in col}
+    df.rename(columns=columns, inplace=True)
+    return df
 
 
 def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
@@ -93,6 +118,7 @@ def sdb2df(sdb: SqliteDatabase, job_id: str) -> str:
         prefix=f"job-{job_id}-", suffix=const.OUTPUT_FORMAT__CSV
     )
     df = pd.read_sql_query("SELECT * FROM data", sdb.conn)
+    df = unpack(df)
     df.to_csv(output_file, index=False)
     return output_file
 
@@ -161,6 +187,28 @@ def download_dataset_from_dvc(
     return output_file
 
 
+async def download_dataset_from_labelstudio(
+    url: str,
+    token: str,
+    project_id: Union[int, str]
+) -> Tuple[str, str]:
+    """
+    Download dataset from labelstudio
+    """
+    _, output_file = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__CSV)
+    headers = {
+        "Authorization": f"token {token}",
+    }
+    async with aiohttp.ClientSession(url, headers=headers) as session:
+        async with session.get(url=f"/api/projects/{project_id}/export?exportType=CSV") as response:
+            if response.status != 200:
+                error_message = await response.text()
+                raise Exception(f"Error downloading dataset: {error_message} {response.status} ")
+            async with aiofiles.open(output_file, mode='wb') as f:
+                await f.write(await response.read())
+    return output_file, "csv"
+
+
 def download_dataset_from_db(
     job_id: str,
     task_type: str,
@@ -198,6 +246,24 @@ def download_dataset_from_db(
         return sdb_path, dataset_type
 
 
+def extract_utterances_safely(conversation_uuid, utterances):
+    if not isinstance(utterances, (list, str)):
+        return []
+    try:
+        utterances = (
+            json.loads(utterances) if isinstance(utterances, str) else utterances
+        )
+    except json.JSONDecodeError:
+        utterances = ast.literal_eval(utterances) if isinstance(utterances, str) else []
+    except Exception as e:
+        logger.warning(
+            f"{conversation_uuid} has invalid utterances: {utterances}, setting to []."
+        )
+        logger.warning(e)
+        utterances = []
+    return utterances
+
+
 def build_dataset(
     job_id: str, data_frame: pd.DataFrame, source: Optional[str] = const.DEFAULT_SOURCE
 ) -> List[dict]:
@@ -222,46 +288,41 @@ def build_dataset(
         total=len(data_frame),
         desc="Building a dataset for uploading safely.",
     ):
+
+        conversation_uuid = row[const.CONVERSATION_UUID]
+        dedupe_id = f"{conversation_uuid}_{uuid.uuid4().hex}"
+        errors = []
+        if const.RAW in data_frame.columns:
+            data = json.loads(row[const.RAW])
+        else:
+            data = row.to_dict()
+        utterance_columns = {const.UTTERANCES, const.ALTERNATIVES}
+
+        if data_frame.columns.intersection(utterance_columns).empty:
+            raise ValueError(f"Expected one of {const.UTTERANCES} or {const.ALTERNATIVES} "
+            "columns in the dataframe. {data_frame.columns}")
+        utterance_col = const.UTTERANCES if const.UTTERANCES in data_frame.columns else const.ALTERNATIVES
+
+        data_point = {
+            const.PRIORITY: 1,
+            const.DATA_SOURCE: source,
+            const.DATA_ID: dedupe_id,
+            const.DATA: {
+                **data,
+                const.CALL_UUID: str(row[const.CALL_UUID]),
+                const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
+                const.ALTERNATIVES: extract_utterances_safely(row[const.CONVERSATION_UUID], row[utterance_col]),
+            },
+            const.IS_GOLD: False,
+        }
         try:
-            dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
-            errors = []
-            if const.RAW in data_frame.columns:
-                data = json.loads(row[const.RAW])
-            else:
-                data = row.to_dict()
+            jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
+            dataset.append(data_point)
+        except jsonschema.exceptions.ValidationError as e:
+            errors.append(e)
+            if len(errors) > len(data_frame) * 0.5:
+                raise RuntimeError(f"Too many errors: {errors}")
 
-            alternatives = data.get(const.UTTERANCES, [])
-            try:
-                alternatives = (
-                    json.loads(alternatives)
-                    if isinstance(alternatives, str)
-                    else alternatives
-                )
-            except json.JSONDecodeError:
-                alternatives = ast.literal_eval(alternatives)
-
-            data_point = {
-                const.PRIORITY: 1,
-                const.DATA_SOURCE: source,
-                const.DATA_ID: dedupe_id,
-                const.DATA: {
-                    **data,
-                    const.CALL_UUID: str(row[const.CALL_UUID]),
-                    const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                    const.ALTERNATIVES: alternatives,
-                },
-                const.IS_GOLD: False,
-            }
-            try:
-                jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
-                dataset.append(data_point)
-            except jsonschema.exceptions.ValidationError as e:
-                errors.append(e)
-                if len(errors) > len(data_frame) * 0.5:
-                    raise RuntimeError(f"Too many errors: {errors}")
-        except Exception as e:
-            logger.error(e)
-            pass
     return dataset
 
 
@@ -269,12 +330,13 @@ async def upload_dataset(
     session: aiohttp.ClientSession, job_id: str, dataset: List[dict]
 ):
     path = f"/tog/tasks/?job_id={job_id}"
-    try:    
-        async with session.post(path, json=dataset) as response:
-            upload_response = await response.json(content_type=None)
-            return (upload_response, response.status)
-    except json.JSONDecodeError:
-        return None,None
+    async with session.post(path, json=dataset) as response:
+        if str(response.status).startswith("2"):
+            upload_response = await response.json()
+        else:
+            raise Exception(f"Error uploading dataset: {response.status} {await response.text()}")
+        return (upload_response, response.status)
+
 
 
 async def upload_dataset_batches(
@@ -299,6 +361,35 @@ async def upload_dataset_batches(
             upload_dataset(session, job_id, dataset) for dataset in dataset_chunks
         ]
         return await asyncio.gather(*requests)
+
+
+async def upload_file(input_file: str, project_id: str, session: aiohttp.ClientSession) -> str:
+    with open(input_file, "rb") as f:
+        return await session.post(f"/api/projects/{project_id}/import", data={"file": f})
+
+
+async def upload_dataset_to_labelstudio(
+    input_file: str,
+    url: str,
+    token: str,
+    project_id: str
+) -> Tuple[List[str], int]:
+    """
+    Upload the dataset to LabelStudio.
+
+    :return: The job id where the dataset was uploaded.
+    :rtype: int
+    """
+    headers = {"Authorization": f"token {token}"}
+    async with aiohttp.ClientSession(url, headers=headers) as session:
+        response = await upload_file(input_file, project_id, session)
+
+        if response.status != 201:
+            error_message = await response.text()
+            raise RuntimeError(f"Failed to upload dataset to LabelStudio: {error_message}, {response.status}")
+        else:
+            response = await response.json()
+            return [], response["task_count"]
 
 
 async def upload_dataset_to_db(
