@@ -1,4 +1,5 @@
 import asyncio
+import ast
 import json
 import os
 import tempfile
@@ -67,11 +68,10 @@ def download_dataset(
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
     bar = tqdm(total=job.total(untagged=full))
-
-    for items in batch_gen(
-        job.get(untagged=full, start_date=start_date, end_date=end_date),
-        n=int(batch_size),
-    ):
+    data_ids = job.get_ids(untagged=full, start_date=start_date, end_date=end_date)
+    
+    for start_index in range(0, len(data_ids), batch_size):
+        items = job.get(data_ids=data_ids[start_index:start_index+batch_size], untagged=full, start_date=start_date, end_date=end_date)
         rows = []
         for task, tag, tagged_time in items:
             # For raw dictionary type tasks, we don't use attr classes.
@@ -222,38 +222,46 @@ def build_dataset(
         total=len(data_frame),
         desc="Building a dataset for uploading safely.",
     ):
-        dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
-        errors = []
-        if const.RAW in data_frame.columns:
-            data = json.loads(row[const.RAW])
-        else:
-            data = row.to_dict()
-
-        alternatives = data.get(const.UTTERANCES, [])
         try:
-            alternatives = json.loads(alternatives) if isinstance(alternatives, str) else alternatives
-        except json.JSONDecodeError:
-            raise ValueError(f"{alternatives} of type {type(alternatives)} is not a valid json string.")
+            dedupe_id = "_".join([row[const.CONVERSATION_UUID], row[const.CALL_UUID]])
+            errors = []
+            if const.RAW in data_frame.columns:
+                data = json.loads(row[const.RAW])
+            else:
+                data = row.to_dict()
 
-        data_point = {
-            const.PRIORITY: 1,
-            const.DATA_SOURCE: source,
-            const.DATA_ID: dedupe_id,
-            const.DATA: {
-                **data,
-                const.CALL_UUID: str(row[const.CALL_UUID]),
-                const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
-                const.ALTERNATIVES: alternatives,
-            },
-            const.IS_GOLD: False,
-        }
-        try:
-            jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
-            dataset.append(data_point)
-        except jsonschema.exceptions.ValidationError as e:
-            errors.append(e)
-            if len(errors) > len(data_frame) * 0.5:
-                raise RuntimeError(f"Too many errors: {errors}")
+            alternatives = data.get(const.UTTERANCES, [])
+            try:
+                alternatives = (
+                    json.loads(alternatives)
+                    if isinstance(alternatives, str)
+                    else alternatives
+                )
+            except json.JSONDecodeError:
+                alternatives = ast.literal_eval(alternatives)
+
+            data_point = {
+                const.PRIORITY: 1,
+                const.DATA_SOURCE: source,
+                const.DATA_ID: dedupe_id,
+                const.DATA: {
+                    **data,
+                    const.CALL_UUID: str(row[const.CALL_UUID]),
+                    const.CONVERSATION_UUID: str(row[const.CONVERSATION_UUID]),
+                    const.ALTERNATIVES: alternatives,
+                },
+                const.IS_GOLD: False,
+            }
+            try:
+                jsonschema.validate(data_point[const.DATA], const.UPLOAD_DATASET_SCHEMA)
+                dataset.append(data_point)
+            except jsonschema.exceptions.ValidationError as e:
+                errors.append(e)
+                if len(errors) > len(data_frame) * 0.5:
+                    raise RuntimeError(f"Too many errors: {errors}")
+        except Exception as e:
+            logger.error(e)
+            pass
     return dataset
 
 
@@ -261,9 +269,12 @@ async def upload_dataset(
     session: aiohttp.ClientSession, job_id: str, dataset: List[dict]
 ):
     path = f"/tog/tasks/?job_id={job_id}"
-    async with session.post(path, json=dataset) as response:
-        upload_response = await response.json(content_type=None)
-        return (upload_response, response.status)
+    try:    
+        async with session.post(path, json=dataset) as response:
+            upload_response = await response.json(content_type=None)
+            return (upload_response, response.status)
+    except json.JSONDecodeError:
+        return None,None
 
 
 async def upload_dataset_batches(
@@ -282,6 +293,7 @@ async def upload_dataset_batches(
     :rtype: int
     """
     headers = {"Authorization": f"Bearer {token}"}
+    print("Uploading batches")
     async with aiohttp.ClientSession(url, headers=headers) as session:
         requests = [
             upload_dataset(session, job_id, dataset) for dataset in dataset_chunks
