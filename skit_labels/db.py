@@ -338,8 +338,8 @@ class Job(AbstractJob):
             jobs_task.job_id = {self.id}
             {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
             {"AND jobs_task.is_gold = true" if only_gold else ''}
-            {f"AND jobs_data.created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
-            {f"AND jobs_data.created_at < '{end_date}'" if isinstance(end_date, str) else ''}
+            {f"AND jobs_data.created_at >= '{start_date}'" if start_date else ''}
+            {f"AND jobs_data.created_at < '{end_date}'" if end_date else ''}
         """
 
         with self.db.conn.cursor(name="data_cursor") as cur:
