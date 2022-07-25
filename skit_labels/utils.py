@@ -99,4 +99,4 @@ def to_datetime(d: str) -> datetime:
             return time_fn(d)
         except ValueError:
             continue
-    raise ValueError(f"Could not parse date string: {d}")
+    return None
