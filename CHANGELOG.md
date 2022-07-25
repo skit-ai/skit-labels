@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.3.25
+
+- [x] fix: datetime formatting produces `None` if none of the formats match.
+- [x] fix: connection timeout mitigated by batching the requests.
+- [x] update: data download uses start and end date for query only if provided.
+
 ## 0.3.24
 
 - [x] add: error handling for uploads.
