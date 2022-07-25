@@ -5,8 +5,10 @@ Module for working with tog database
 import json
 import os
 import sqlite3
+import time
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Union
+
 
 import psycopg2
 import pytz
@@ -199,7 +201,7 @@ class Job(AbstractJob):
         self.id = id
         # TODO: Check task validity right here
         self.task_type = task_type
-
+        self.db_name = db
         self.db = database or Database(
             db=db, user=user, password=password, host=host, port=port
         )
@@ -210,6 +212,10 @@ class Job(AbstractJob):
         self.tz = tz
         self.start_date = start_date
         self.end_date = end_date
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
 
     def __repr__(self):
         f"Job {self.id}: {self.name} [language: {self.lang}]\n{self.description}"
@@ -299,15 +305,60 @@ class Job(AbstractJob):
         """
         List all available job_ids
         """
-        with self.db.conn.cursor(name="data_cursor") as cursor:
+        import time
+        time.sleep(.5)
+        self.db = Database(
+            db=self.db_name, user=self.user, password=self.password, host=self.host, port=self.port
+        )
+        with self.db.conn.cursor() as cursor:
             cursor.execute('select "taskType" from jobs_job where id = %s', (self.id,))
             record = cursor.fetchone()
             if record:
                 return record[0]
             raise ValueError(f"Invalid job id {self.id}")
 
+    def get_ids(
+        self,
+        untagged=False,
+        itersize=1000,
+        only_gold=False,
+        start_date=None,
+        end_date=None,
+    ):
+        """
+        Return (generator) tagged tasks and tags from the database. Itersize sets
+        the iteration size for the server sided cursor.
+
+        If `untagged` is True, also return untagged items. This might be useful
+        for checking, say, production metrics. If `only_gold` is True, return
+        only items which are marked as gold.
+        """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
+        query = f"""
+        SELECT
+            jobs_data.id
+        FROM jobs_task INNER JOIN jobs_data ON
+            jobs_data.id = jobs_task.data_id
+        WHERE
+            jobs_task.job_id = {self.id}
+            {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
+            {"AND jobs_task.is_gold = true" if only_gold else ''}
+            {f"AND jobs_data.created_at >= '{start_date}'" if start_date else ''}
+            {f"AND jobs_data.created_at < '{end_date}'" if end_date else ''}
+        """
+        with self.db.conn.cursor() as cur:
+            cur.itersize = itersize
+            cur.execute(query)
+            data_ids = [x[0] for x in cur.fetchall()]
+        self.db.conn.close()
+        return data_ids
+
+
     def get(
         self,
+        data_ids = [],
         untagged=False,
         itersize=1000,
         only_gold=False,
@@ -335,22 +386,20 @@ class Job(AbstractJob):
         FROM jobs_task INNER JOIN jobs_data ON
             jobs_data.id = jobs_task.data_id
         WHERE
-            jobs_task.job_id = {self.id}
-            {'' if untagged else 'AND jobs_task.tag IS NOT NULL'}
-            {"AND jobs_task.is_gold = true" if only_gold else ''}
-            {f"AND jobs_data.created_at >= '{start_date}'" if start_date else ''}
-            {f"AND jobs_data.created_at < '{end_date}'" if end_date else ''}
+            jobs_task.data_id IN {tuple(data_ids)}
         """
-
-        with self.db.conn.cursor(name="data_cursor") as cur:
-            cur.itersize = itersize
+        db = Database(self.db_name, self.user, self.password, host=self.host, port=self.port)
+        items = []
+        with db.conn.cursor() as cur:
             cur.execute(query)
 
             for row in cur:
                 task_dict, tag, is_gold, tagged_time, data_id = row
                 task = build_task(task_dict, self.task_type, data_id, tz=self.tz)
                 task.is_gold = bool(is_gold)
-                yield task, tag, tagged_time
+                items.append((task, tag, tagged_time))
+        db.conn.close()
+        return items
 
 
 class JobLocal(AbstractJob):

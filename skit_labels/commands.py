@@ -1,6 +1,7 @@
 import ast
 import uuid
 import asyncio
+import ast
 import json
 import os
 import tempfile
@@ -68,11 +69,10 @@ def download_dataset(
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
     bar = tqdm(total=job.total(untagged=full))
-
-    for items in batch_gen(
-        job.get(untagged=full, start_date=start_date, end_date=end_date),
-        n=int(batch_size),
-    ):
+    data_ids = job.get_ids(untagged=full, start_date=start_date, end_date=end_date)
+    
+    for start_index in range(0, len(data_ids), batch_size):
+        items = job.get(data_ids=data_ids[start_index:start_index+batch_size], untagged=full, start_date=start_date, end_date=end_date)
         rows = []
         for task, tag, tagged_time in items:
             # For raw dictionary type tasks, we don't use attr classes.
@@ -288,6 +288,7 @@ def build_dataset(
         total=len(data_frame),
         desc="Building a dataset for uploading safely.",
     ):
+
         conversation_uuid = row[const.CONVERSATION_UUID]
         dedupe_id = f"{conversation_uuid}_{uuid.uuid4().hex}"
         errors = []
@@ -321,6 +322,7 @@ def build_dataset(
             errors.append(e)
             if len(errors) > len(data_frame) * 0.5:
                 raise RuntimeError(f"Too many errors: {errors}")
+
     return dataset
 
 
@@ -334,6 +336,7 @@ async def upload_dataset(
         else:
             raise Exception(f"Error uploading dataset: {response.status} {await response.text()}")
         return (upload_response, response.status)
+
 
 
 async def upload_dataset_batches(
@@ -352,6 +355,7 @@ async def upload_dataset_batches(
     :rtype: int
     """
     headers = {"Authorization": f"Bearer {token}"}
+    print("Uploading batches")
     async with aiohttp.ClientSession(url, headers=headers) as session:
         requests = [
             upload_dataset(session, job_id, dataset) for dataset in dataset_chunks
