@@ -62,6 +62,11 @@ def download_dataset(
         start_date=start_date,
         end_date=end_date,
         database=database,
+        db=db,
+        user=user,
+        password=password,
+        host=host,
+        port=port
     )
     describe_dataset(job_id, job=job)
     stat_dataset(job_id, job=job)
