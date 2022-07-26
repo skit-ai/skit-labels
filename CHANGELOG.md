@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.26
+
+- [x] fix: bug(#13) passing of creds into creating Job as None
+
 ## 0.3.25
 
 - [x] fix: datetime formatting produces `None` if none of the formats match.
