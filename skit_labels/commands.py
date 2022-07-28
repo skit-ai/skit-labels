@@ -332,16 +332,27 @@ def build_dataset(
 
 
 async def upload_dataset(
-    session: aiohttp.ClientSession, job_id: str, dataset: List[dict]
+    session: aiohttp.ClientSession, job_id: str, dataset: List[dict], retries: int = 3
 ):
-    path = f"/tog/tasks/?job_id={job_id}"
-    async with session.post(path, json=dataset) as response:
-        if str(response.status).startswith("2"):
-            upload_response = await response.json()
-        else:
-            raise Exception(f"Error uploading dataset: {response.status} {await response.text()}")
-        return (upload_response, response.status)
-
+    sleep_time = 5 #seconds
+    while retries >= 0 :
+        path = f"/tog/tasks/?job_id={job_id}"
+        status_code = 0
+        try:
+            async with session.post(path, json=dataset) as response:
+                status_code = response.status
+                if str(response.status).startswith("2"):
+                    upload_response = await response.json()
+                    return (upload_response, status_code)
+                else:
+                    raise aiohttp.ClientOSError
+                
+        except (aiohttp.ClientOSError, aiohttp.ServerDisconnectedError, asyncio.TimeoutError) as e:
+            retries -= 1
+            print(f"failed to upload dataset: {e},\n..retrying in {sleep_time} seconds")
+            await asyncio.sleep(sleep_time)
+    
+    raise Exception(f"Error uploading dataset: {status_code}")
 
 
 async def upload_dataset_batches(
@@ -432,4 +443,4 @@ async def upload_dataset_to_db(
                 errors.append(message)
                 logger.error(f"{status_code}: {message}")
         errors_final.extend(errors)
-    return errors, len(data_frame)
+    return errors_final, len(data_frame)
