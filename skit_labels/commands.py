@@ -421,12 +421,15 @@ async def upload_dataset_to_db(
 
     data_frame = pd.read_csv(input_file)
     dataset = build_dataset(job_id, data_frame)
-    batched_dataset = batch_gen(dataset)
-    responses = await upload_dataset_batches(batched_dataset, url, token, job_id)
-    errors = []
+    batched_datasets = batch_gen(dataset, 100)
+    errors_final = []
+    for batched_dataset in batch_gen(batched_datasets, 10):
+        responses = await upload_dataset_batches(batched_dataset, url, token, job_id)
+        errors = []
 
-    for message, status_code in responses:
-        if status_code not in [200, 201]:
-            errors.append(message)
-            logger.error(f"{status_code}: {message}")
+        for message, status_code in responses:
+            if status_code not in [200, 201]:
+                errors.append(message)
+                logger.error(f"{status_code}: {message}")
+        errors_final.extend(errors)
     return errors, len(data_frame)
