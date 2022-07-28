@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.3.27
+
+- [x] add: makes batches of batched_dataset while uploading to tog db - limits max async connections to db at a time
+- [x] add: retries with sleep while uploading data to tog db
+
 ## 0.3.26
 
 - [x] fix: bug(#13) passing of creds into creating Job as None
