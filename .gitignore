@@ -114,4 +114,7 @@ dmypy.json
 *.sqlite
 *.log
 env.sh
+
+secrets/
+scripts/
 .history/
