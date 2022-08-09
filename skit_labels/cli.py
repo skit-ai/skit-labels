@@ -359,7 +359,13 @@ def cmd_to_str(args: argparse.Namespace) -> str:
                     "Expected to receive --input=<file> or its valued piped in."
                 )
 
-        errors, df_size = upload_dataset(args.input, args.url, args.token, args.job_id, args.data_source)
+        arg_id = None
+        if args.data_source == const.SOURCE__LABELSTUDIO:
+            arg_id = args.project_id
+        elif args.data_source == const.SOURCE__DB:
+            arg_id = args.job_id
+
+        errors, df_size = upload_dataset(args.input, args.url, args.token, arg_id, args.data_source)
 
         if errors:
             return (
