@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.28
+
+- [x] fix: pass project_id for LS and job_id for TOG
+
 ## 0.3.27
 
 - [x] add: makes batches of batched_dataset while uploading to tog db - limits max async connections to db at a time
