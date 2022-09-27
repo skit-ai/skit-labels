@@ -192,6 +192,12 @@ def download_dataset_from_dvc(
     return output_file
 
 
+def processLabelstudioColumns(df_path: str):
+    df = pd.read_csv(df_path)
+    df[const.DATA_ID] = df[const.CONVERSATION_UUID].values
+    df[const.ALTERNATIVES] = df[const.UTTERANCES].values
+    df.to_csv(df_path, index=False)
+
 async def download_dataset_from_labelstudio(
     url: str,
     token: str,
@@ -211,6 +217,8 @@ async def download_dataset_from_labelstudio(
                 raise Exception(f"Error downloading dataset: {error_message} {response.status} ")
             async with aiofiles.open(output_file, mode='wb') as f:
                 await f.write(await response.read())
+    
+    processLabelstudioColumns(df_path=output_file)
     return output_file, "csv"
 
 
