@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.29
+
+- [x] fix: data format issue after downloading from labelstudio
+
 ## 0.3.28
 
 - [x] fix: pass project_id for LS and job_id for TOG
