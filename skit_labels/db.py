@@ -402,6 +402,225 @@ class Job(AbstractJob):
         return items
 
 
+class LabelstudioJob(AbstractJob):
+    """
+    A Labelstudio job which specifies a kind of tagging data set and problem.
+    """
+
+    def __init__(
+        self,
+        id: int,
+        task_type: str = "conversation",
+        database: Optional[Database] = None,
+        tz=pytz.UTC,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        db: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
+    ):
+        self.id = id
+        self.db_name = db
+        self.task_type = task_type
+        self.db = database or Database(
+            db=db, user=user, password=password, host=host, port=port
+        )
+
+        # Cache for keeping rows of job indexed by data_ids
+        self.cache = {}
+        self.tz = tz
+        self.start_date = start_date
+        self.end_date = end_date
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+
+    def total(self, untagged=False, start_date=None, end_date=None):
+        """
+        Return total number of items for this job. If `untagged` is True, consider
+        untagged items in counting too.
+        """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
+        with self.db.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH labelstudio_data as (
+                    SELECT 
+                        project.id as "job_id",
+                        task_completion.created_at as "task_completion_created_at"
+                    FROM project
+                    INNER JOIN task on project.id=task.project_id
+                    INNER JOIN task_completion on task_completion.task_id=task.id
+                    {"" if untagged else "WHERE task_completion.result != '[]'"}
+                )
+                
+                SELECT COUNT(*) from labelstudio_data
+                WHERE
+                    job_id={self.id}
+                    {f"AND task_completion_created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                    {f"AND task_completion_created_at <= '{end_date}'" if isinstance(end_date, str) else ''}
+                """
+            )
+            n = cur.fetchone()[0]
+        return n
+
+    def type(self):
+        """
+        type of job
+        """
+        return ""
+        
+
+    def get_by_data_id(self, id: int, cache=True, start_date=None, end_date=None):
+        """
+        Return task and tag using the data id
+        """
+
+        if id in self.cache:
+            return self.cache[id]
+
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
+        with self.db.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH labelstudio_data as (
+                    SELECT 
+                        project.id as "job_id",
+                        task.data->> 'conversation_uuid' as "data_id",
+                        task_completion.created_at as "task_completion_created_at",
+                        task.data,
+                        task_completion.result as "tag"
+                    FROM project
+                    INNER JOIN task on project.id=task.project_id
+                    INNER JOIN task_completion on task_completion.task_id=task.id
+                    {"" if untagged else "WHERE task_completion.result != '[]'"}
+                )
+                
+                SELECT data_id, data, job_id, task_completion_created_at, tag FROM labelstudio_data
+                WHERE
+                    job_id={self.id} AND labelstudio_data.data_id={id}
+                    {f"AND task_completion_created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                    {f"AND task_completion_created_at <= '{end_date}'" if isinstance(end_date, str) else ''}
+                """
+            )
+            try:
+                data_id, task_dict, job_id, tagged_time, tag_list = cur.fetchone()
+            except TypeError:
+                raise RuntimeError("No item found for given data id")
+
+            task = build_task(task_dict, task_type='conversation', tz=self.tz)
+            tag = json.loads(tag_list)[0]["value"]["choices"][0]
+
+            if cache:
+                self.cache[id] = (task, tag, tagged_time)
+            return task, tag, tagged_time
+
+    def get_ids(
+        self,
+        untagged=False,
+        itersize=1000,
+        only_gold=False,
+        start_date=None,
+        end_date=None,
+    ):
+        """
+        Return (generator) tagged tasks and tags from the database. Itersize sets
+        the iteration size for the server sided cursor.
+
+        If `untagged` is True, also return untagged items. This might be useful
+        for checking, say, production metrics. If `only_gold` is True, return
+        only items which are marked as gold.
+        """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
+        query = f"""
+            WITH labelstudio_data as (
+                SELECT 
+                    project.id as "job_id",
+                    task.data,
+                    task_completion.created_at as "task_completion_created_at"
+                FROM project
+                INNER JOIN task on project.id=task.project_id
+                INNER JOIN task_completion on task_completion.task_id=task.id
+                {"" if untagged else "WHERE task_completion.result != '[]'"}
+            )
+            
+            SELECT data->>'conversation_uuid' as "data_id" FROM labelstudio_data
+            WHERE
+                job_id={self.id}
+                {f"AND task_completion_created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                {f"AND task_completion_created_at <= '{end_date}'" if isinstance(end_date, str) else ''}
+            """
+        with self.db.conn.cursor() as cur:
+            cur.itersize = itersize
+            cur.execute(query)
+            data_ids = [x[0] for x in cur.fetchall()]
+        self.db.conn.close()
+        return data_ids
+
+
+    def get(
+        self,
+        data_ids = [],
+        untagged=False,
+        itersize=1000,
+        only_gold=False,
+        start_date=None,
+        end_date=None,
+    ):
+        """
+        Return (generator) tagged tasks and tags from the database. Itersize sets
+        the iteration size for the server sided cursor.
+
+        If `untagged` is True, also return untagged items. This might be useful
+        for checking, say, production metrics.
+        """
+        start_date = start_date or self.start_date
+        end_date = end_date or self.end_date
+
+        query = f"""
+            WITH labelstudio_data as (
+                SELECT 
+                    project.id as "job_id",
+                    task.data->> 'conversation_uuid' as "data_id",
+                    task_completion.created_at as "task_completion_created_at",
+                    task.data,
+                    task_completion.result as "tag"
+                FROM project
+                INNER JOIN task on project.id=task.project_id
+                INNER JOIN task_completion on task_completion.task_id=task.id
+                {"" if untagged else "WHERE task_completion.result != '[]'"}
+            )
+            
+            SELECT data_id, data, job_id, task_completion_created_at, tag FROM labelstudio_data
+            WHERE
+                job_id={self.id} AND data_id in {tuple(data_ids)}
+                {f"AND task_completion_created_at >= '{start_date}'" if isinstance(start_date, str) else ''}
+                {f"AND task_completion_created_at <= '{end_date}'" if isinstance(end_date, str) else ''}
+            """
+        
+        db = Database(self.db_name, self.user, self.password, host=self.host, port=self.port)
+        items = []
+        with db.conn.cursor() as cur:
+            cur.execute(query)
+
+            for row in cur:
+                data_id, task_dict, job_id, tagged_time, tag_list = row
+                task = build_task(task_dict, "conversation", data_id, tz=self.tz)
+                task.is_gold = True
+                items.append((task, tag_list, tagged_time))
+        db.conn.close()
+        return items
+
+
 class JobLocal(AbstractJob):
     """
     A tog job relying on local sqlite database.

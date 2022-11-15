@@ -206,8 +206,9 @@ class ConversationTask(Task):
         )
         if call_uuid is None or conversation_uuid is None:
             raise ValueError(f"No reference for call or conversation. {d.keys()}")
-        if d.get("alternatives"):
-            d["alternatives"] = json.dumps(d["alternatives"], ensure_ascii=False)
+        alts_key = "utterances" if "utterances" in d.keys() else "alternatives"
+        if d.get(alts_key) is not None:
+            d["alternatives"] = json.dumps(d[alts_key], ensure_ascii=False)
         return ConversationTask(
             **{
                 **py_.pick(
