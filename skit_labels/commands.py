@@ -20,7 +20,7 @@ from requests import JSONDecodeError
 from tqdm import tqdm
 
 from skit_labels import constants as const
-from skit_labels.db import Database, Job, SqliteDatabase
+from skit_labels.db import Database, Job, LabelstudioJob, SqliteDatabase
 
 
 def batch_gen(source, n=100):
@@ -54,8 +54,9 @@ def download_dataset(
     host: Optional[str] = None,
     port: Optional[Union[int, str]] = None,
 ) -> Tuple[SqliteDatabase, str, str]:
-    database = Database(user=user, password=password, host=host, port=port)
-    job = Job(
+    database = Database(db=db, user=user, password=password, host=host, port=port)
+    JOB_CREATOR = LabelstudioJob if db == const.LABELSTUIO_DB else Job
+    job = JOB_CREATOR(
         int(job_id),
         task_type=task_type,
         tz=timezone,
@@ -68,8 +69,9 @@ def download_dataset(
         host=host,
         port=port
     )
-    describe_dataset(job_id, job=job)
-    stat_dataset(job_id, job=job)
+    if db != const.LABELSTUIO_DB:
+        describe_dataset(job_id, job=job)
+        stat_dataset(job_id, job=job)
 
     _, temp_filepath = tempfile.mkstemp(suffix=const.OUTPUT_FORMAT__SQLITE)
     sdb = SqliteDatabase(temp_filepath)
@@ -195,7 +197,15 @@ def download_dataset_from_dvc(
 def processLabelstudioColumns(df_path: str):
     df = pd.read_csv(df_path)
     df[const.DATA_ID] = df[const.CONVERSATION_UUID].values
-    df[const.ALTERNATIVES] = df[const.UTTERANCES].values
+    df[const.ALTERNATIVES] = df[const.UTTERANCES].values if const.UTTERANCES in df else df[const.ALTERNATIVES]
+    try:
+        #e.g - "[{""id"": ""ID1lrD5_AT"", ""type"": ""choices"", ""value"": {""choices"": [""_confirm_""]}, ""origin"": ""manual"", ""to_name"": ""audio"", ""from_name"": ""tag""}]"
+        df["tag"] = df["tag"].apply(lambda val: json.dumps(json.loads(val)[0]["value"]))
+        df = df[df["tag"].apply(lambda val: "choices" in json.loads(val))]
+        df["tag"] = df["tag"].apply(lambda val: json.loads(val)["choices"][0])
+    except json.JSONDecodeError:
+        logger.warning("please check tag column, it's unparseable to get a single value out")
+        
     df.to_csv(df_path, index=False)
 
 async def download_dataset_from_labelstudio(
@@ -253,6 +263,8 @@ def download_dataset_from_db(
     )
     if output_format == const.OUTPUT_FORMAT__CSV:
         df_path = sdb2df(sdb, job_id)
+        if db == const.LABELSTUIO_DB:
+            processLabelstudioColumns(df_path)
         os.remove(sdb_path)
         return df_path, dataset_type
     else:

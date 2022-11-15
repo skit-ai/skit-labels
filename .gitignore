@@ -118,3 +118,4 @@ env.sh
 secrets/
 scripts/
 .history/
+testing.py
