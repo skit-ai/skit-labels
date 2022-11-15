@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.3.30
+
+- [x] add: modified downloading from db to integrate labelstudio db queries
+
+
 ## 0.3.29
 
 - [x] fix: data format issue after downloading from labelstudio
