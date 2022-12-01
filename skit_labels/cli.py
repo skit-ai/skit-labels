@@ -7,7 +7,6 @@ import os
 import sys
 from ast import arg
 from datetime import datetime
-from typing import Union
 
 import pytz
 
@@ -31,11 +30,7 @@ def is_numeric(value: str) -> str:
         raise argparse.ArgumentTypeError(f"{value} is not a numeric value.")
     return value
 
-def is_valid_data_label(data_label: Union[str, None]):
-    if not data_label:
-        raise argparse.ArgumentTypeError(
-                f"Please pass a --data-label. You can choose from: [{', '.join(const.VALID_DATA_LABELS)}]"
-            )
+def is_valid_data_label(data_label: str):
     if data_label not in const.VALID_DATA_LABELS:
         raise argparse.ArgumentTypeError(
                 f"Expected data label --data-label to be one of [{', '.join(const.VALID_DATA_LABELS)}]"
@@ -229,7 +224,7 @@ def upload_dataset_to_labelstudio_command(
     parser.add_argument(
         "--data-label",
         type=str,
-        required=False,
+        required=True,
         help="The data label implying the source of data",
     )
     return parser
@@ -266,7 +261,7 @@ def upload_dataset_to_tog_command(
     parser.add_argument(
         "--data-label",
         type=str,
-        required=False,
+        required=True,
         help="The data label implying the source of data",
     )
     return parser
