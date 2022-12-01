@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.31
+
+- [x] add: required paramter --data-label for uploading datasets
 ## 0.3.30
 
 - [x] add: modified downloading from db to integrate labelstudio db queries

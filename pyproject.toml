@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "skit-labels"
-version = "0.3.30"
+version = "0.3.31"
 description = "Command line tool for interacting with labelled datasets at skit.ai."
 authors = []
 license = "MIT"
