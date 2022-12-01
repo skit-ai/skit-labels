@@ -8,6 +8,8 @@ import toml
 from typing import Optional
 from loguru import logger
 from datetime import datetime
+import pandas as pd
+from typing import Union
 
 
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "SUCCESS", "INFO", "DEBUG", "TRACE"]
@@ -100,3 +102,11 @@ def to_datetime(d: str) -> datetime:
         except ValueError:
             continue
     return None
+
+
+def add_data_label(input_file: str, data_label: Optional[str] = None) -> str:
+    df = pd.read_csv(input_file)
+    data_label = data_label or None
+    df = df.assign(data_label=data_label)
+    df.to_csv(input_file, index=False)
+    return input_file

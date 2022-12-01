@@ -30,6 +30,13 @@ def is_numeric(value: str) -> str:
         raise argparse.ArgumentTypeError(f"{value} is not a numeric value.")
     return value
 
+def is_valid_data_label(data_label: str):
+    if data_label not in const.VALID_DATA_LABELS:
+        raise argparse.ArgumentTypeError(
+                f"Expected data label --data-label to be one of [{', '.join(const.VALID_DATA_LABELS)}]"
+            )
+    return
+
 
 def date_type(value: str):
     try:
@@ -214,6 +221,12 @@ def upload_dataset_to_labelstudio_command(
         required=True,
         help="Upload dataset to given project-id.",
     )
+    parser.add_argument(
+        "--data-label",
+        type=str,
+        required=True,
+        help="The data label implying the source of data",
+    )
     return parser
 
 
@@ -244,6 +257,12 @@ def upload_dataset_to_tog_command(
         type=is_numeric,
         required=True,
         help="Upload dataset to given job-id.",
+    )
+    parser.add_argument(
+        "--data-label",
+        type=str,
+        required=True,
+        help="The data label implying the source of data",
     )
     return parser
 
@@ -300,7 +319,8 @@ def build_cli():
     return parser
 
 
-def upload_dataset(input_file, url, token, job_id, data_source):
+def upload_dataset(input_file, url, token, job_id, data_source, data_label = None):
+    input_file = utils.add_data_label(input_file, data_label)
     if data_source == const.SOURCE__DB:
         fn = commands.upload_dataset_to_db
     elif data_source == const.SOURCE__LABELSTUDIO:
@@ -365,7 +385,8 @@ def cmd_to_str(args: argparse.Namespace) -> str:
         elif args.data_source == const.SOURCE__DB:
             arg_id = args.job_id
 
-        errors, df_size = upload_dataset(args.input, args.url, args.token, arg_id, args.data_source)
+        _ = is_valid_data_label(args.data_label)
+        errors, df_size = upload_dataset(args.input, args.url, args.token, arg_id, args.data_source, args.data_label)
 
         if errors:
             return (
