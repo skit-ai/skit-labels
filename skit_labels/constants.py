@@ -111,3 +111,4 @@ TOGDB_PASSWORD = "TOGDB_PASS"
 TOTAL = "total"
 TAGGED = "tagged"
 UNTAGGED = "untagged"
+VALID_DATA_LABELS = ["Client", "Ops", "UAT", "Live"]
