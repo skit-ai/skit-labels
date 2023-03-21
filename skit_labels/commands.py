@@ -198,8 +198,11 @@ def processLabelstudioColumns(df_path: str):
     df = pd.read_csv(df_path)
     df[const.DATA_ID] = df[const.CONVERSATION_UUID].values
     df[const.ALTERNATIVES] = df[const.UTTERANCES].values if const.UTTERANCES in df else df[const.ALTERNATIVES]
+    df[const.ALTERNATIVES] = df[const.ALTERNATIVES].apply(
+        lambda val: json.dumps(json.loads(json.loads(val)), ensure_ascii=False) \
+            if json.loads(val) else json.dumps([])
+    )
     try:
-        #e.g - "[{""id"": ""ID1lrD5_AT"", ""type"": ""choices"", ""value"": {""choices"": [""_confirm_""]}, ""origin"": ""manual"", ""to_name"": ""audio"", ""from_name"": ""tag""}]"
         df["tag"] = df["tag"].apply(lambda val: json.dumps(json.loads(val)[0]["value"]))
         df = df[df["tag"].apply(lambda val: "choices" in json.loads(val))]
         df["tag"] = df["tag"].apply(lambda val: json.loads(val)["choices"][0])
