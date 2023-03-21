@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.32
+- [x] fix: alternatives column postprocessing after downloading from labelstudio
+
 ## 0.3.31
 
 - [x] add: required paramter --data-label for uploading datasets

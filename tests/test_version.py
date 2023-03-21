@@ -1,5 +1,5 @@
-from skit_labels import __version__, utils
+from skit_labels import utils
 
 
-def test_version():
-    assert __version__ == utils.get_version()
+def test_get_version():
+    assert utils.get_version()

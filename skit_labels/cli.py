@@ -10,7 +10,7 @@ from datetime import datetime
 
 import pytz
 
-from skit_labels import __version__, commands
+from skit_labels import commands
 from skit_labels import constants as const
 from skit_labels import utils
 
@@ -287,7 +287,7 @@ def build_upload_command(parser: argparse.ArgumentParser) -> None:
 
 def build_cli():
     parser = argparse.ArgumentParser(
-        description=f"skit-labels {__version__}. Command line interface for interacting with labelled datasets.",
+        description=f"skit-labels. Command line interface for interacting with labelled datasets.",
     )
     parser.add_argument(
         "-v", action="count", help="Increase verbosity.", dest="verbosity", default=0
