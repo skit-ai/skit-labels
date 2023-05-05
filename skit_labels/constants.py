@@ -112,3 +112,12 @@ TOTAL = "total"
 TAGGED = "tagged"
 UNTAGGED = "untagged"
 VALID_DATA_LABELS = ["Client", "Ops", "UAT", "Live"]
+
+INCORRECT_TRANSCRIPT = "Incorrect Transcript"
+GOLD_READY_FOR_TRAINING = "[GOLD] READY FOR TRAINING"
+FROM_NAME = "from_name"
+FROM_NAME_GOLD_DATA = "gold-data"
+FROM_NAME_INTENT = "tag"
+CHOICES = "choices"
+TAXONOMY = "taxonomy"
+VALUE = "value"

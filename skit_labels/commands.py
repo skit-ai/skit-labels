@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from skit_labels import constants as const
 from skit_labels.db import Database, Job, LabelstudioJob, SqliteDatabase
-
+from skit_labels.labelstudio import annotations
 
 def batch_gen(source, n=100):
     """
@@ -194,38 +194,6 @@ def download_dataset_from_dvc(
     return output_file
 
 
-def extract_intent_from_labelstudio_annotations(tag) -> Optional[str]:
-
-    try:
-
-        intent_tag = None
-
-        tag = json.loads(tag)
-
-        # searching for the dictionary which has the intent, should have "from_name":"tag"
-        for subset_tag in tag:
-            if "from_name" in subset_tag and subset_tag["from_name"] == "tag":
-                intent_tag = subset_tag
-                break
-
-        if intent_tag is None: return None
-
-        intent_tag = intent_tag["value"]
-
-        if "choices" in intent_tag:
-            return intent_tag["choices"][0]
-        elif "taxonomy" in intent_tag:
-            return intent_tag["taxonomy"][0][0]
-
-    except json.JSONDecodeError:
-        logger.warning("please check tag column, it's unparseable to get a single value out")
-    except Exception as e:
-        logger.warning(e)
-
-    return None
-
-
-
 def processLabelstudioColumns(df_path: str):
     df = pd.read_csv(df_path)
     df[const.DATA_ID] = df[const.CONVERSATION_UUID].values
@@ -235,8 +203,12 @@ def processLabelstudioColumns(df_path: str):
             if json.loads(val) else json.dumps([])
     )
 
-    df["tag"] = df["tag"].apply(extract_intent_from_labelstudio_annotations)
+    df["labelstudio_raw_tag"] = df["tag"].apply(json.loads)
+    df["tag"] = df["labelstudio_raw_tag"].apply(annotations.extract_intent)
+    df["incorrect_transcript"] = df["labelstudio_raw_tag"].apply(annotations.extract_incorrect_transcript)
+    df["gold_ready_for_training"] = df["labelstudio_raw_tag"].apply(annotations.extract_gold_ready_for_training)
     df.dropna(subset=["tag"], inplace=True)
+    df.drop(columns=["labelstudio_raw_tag"], inplace=True)
     df.to_csv(df_path, index=False)
 
 async def download_dataset_from_labelstudio(
