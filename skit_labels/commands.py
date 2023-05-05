@@ -194,6 +194,26 @@ def download_dataset_from_dvc(
     return output_file
 
 
+def extract_intent_from_labelstudio_annotations(tag) -> Optional[str]:
+
+    try:
+
+        tag = json.loads(tag)[0]["value"]
+
+        if "choices" in tag:
+            return tag["choices"][0]
+        elif "taxonomy" in tag:
+            return tag["taxonomy"][0][0]
+
+    except json.JSONDecodeError:
+        logger.warning("please check tag column, it's unparseable to get a single value out")
+    except Exception as e:
+        logger.warning(e)
+
+    return None
+
+
+
 def processLabelstudioColumns(df_path: str):
     df = pd.read_csv(df_path)
     df[const.DATA_ID] = df[const.CONVERSATION_UUID].values
@@ -202,13 +222,9 @@ def processLabelstudioColumns(df_path: str):
         lambda val: json.dumps(json.loads(json.loads(val)), ensure_ascii=False) \
             if json.loads(val) else json.dumps([])
     )
-    try:
-        df["tag"] = df["tag"].apply(lambda val: json.dumps(json.loads(val)[0]["value"]))
-        df = df[df["tag"].apply(lambda val: "choices" in json.loads(val))]
-        df["tag"] = df["tag"].apply(lambda val: json.loads(val)["choices"][0])
-    except json.JSONDecodeError:
-        logger.warning("please check tag column, it's unparseable to get a single value out")
-        
+
+    df["tag"] = df["tag"].apply(extract_intent_from_labelstudio_annotations)
+    df.dropna(subset=["tag"], inplace=True)
     df.to_csv(df_path, index=False)
 
 async def download_dataset_from_labelstudio(
