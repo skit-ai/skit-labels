@@ -198,12 +198,24 @@ def extract_intent_from_labelstudio_annotations(tag) -> Optional[str]:
 
     try:
 
-        tag = json.loads(tag)[0]["value"]
+        intent_tag = None
 
-        if "choices" in tag:
-            return tag["choices"][0]
-        elif "taxonomy" in tag:
-            return tag["taxonomy"][0][0]
+        tag = json.loads(tag)
+
+        # searching for the dictionary which has the intent, should have "from_name":"tag"
+        for subset_tag in tag:
+            if "from_name" in subset_tag and subset_tag["from_name"] == "tag":
+                intent_tag = subset_tag
+                break
+
+        if intent_tag is None: return None
+
+        intent_tag = intent_tag["value"]
+
+        if "choices" in intent_tag:
+            return intent_tag["choices"][0]
+        elif "taxonomy" in intent_tag:
+            return intent_tag["taxonomy"][0][0]
 
     except json.JSONDecodeError:
         logger.warning("please check tag column, it's unparseable to get a single value out")
