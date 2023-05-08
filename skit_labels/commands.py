@@ -204,9 +204,9 @@ def processLabelstudioColumns(df_path: str):
     )
 
     df["labelstudio_raw_tag"] = df["tag"].apply(json.loads)
-    df["tag"] = df["labelstudio_raw_tag"].apply(annotations.extract_intent)
-    df["incorrect_transcript"] = df["labelstudio_raw_tag"].apply(annotations.extract_incorrect_transcript)
-    df["gold_ready_for_training"] = df["labelstudio_raw_tag"].apply(annotations.extract_gold_ready_for_training)
+    df["tag"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_INTENT, const.FROM_NAME_INTENT))
+    df["incorrect_transcript"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_GOLD_DATA, const.INCORRECT_TRANSCRIPT))
+    df["gold_ready_for_training"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_GOLD_DATA, const.GOLD_READY_FOR_TRAINING))
     df.dropna(subset=["tag"], inplace=True)
     df.drop(columns=["labelstudio_raw_tag"], inplace=True)
     df.to_csv(df_path, index=False)
