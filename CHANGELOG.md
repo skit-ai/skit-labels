@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.33
+- [x] PL-1300: new data format support & extra meta-annotation-columns  (#21)
+
 ## 0.3.32
 - [x] fix: alternatives column postprocessing after downloading from labelstudio
 
