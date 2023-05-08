@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from skit_labels import constants as const
 from skit_labels.db import Database, Job, LabelstudioJob, SqliteDatabase
-
+from skit_labels.labelstudio import annotations
 
 def batch_gen(source, n=100):
     """
@@ -202,13 +202,13 @@ def processLabelstudioColumns(df_path: str):
         lambda val: json.dumps(json.loads(json.loads(val)), ensure_ascii=False) \
             if json.loads(val) else json.dumps([])
     )
-    try:
-        df["tag"] = df["tag"].apply(lambda val: json.dumps(json.loads(val)[0]["value"]))
-        df = df[df["tag"].apply(lambda val: "choices" in json.loads(val))]
-        df["tag"] = df["tag"].apply(lambda val: json.loads(val)["choices"][0])
-    except json.JSONDecodeError:
-        logger.warning("please check tag column, it's unparseable to get a single value out")
-        
+
+    df["labelstudio_raw_tag"] = df["tag"].apply(json.loads)
+    df["tag"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_INTENT, const.FROM_NAME_INTENT))
+    df["incorrect_transcript"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_GOLD_DATA, const.INCORRECT_TRANSCRIPT))
+    df["gold_ready_for_training"] = df["labelstudio_raw_tag"].apply(annotations.extract_annotation_related_to_intents, args=(const.FROM_NAME_GOLD_DATA, const.GOLD_READY_FOR_TRAINING))
+    df.dropna(subset=["tag"], inplace=True)
+    df.drop(columns=["labelstudio_raw_tag"], inplace=True)
     df.to_csv(df_path, index=False)
 
 async def download_dataset_from_labelstudio(
