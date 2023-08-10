@@ -17,6 +17,8 @@ import pandas as pd
 import pytz
 from loguru import logger
 from requests import JSONDecodeError
+from tenacity import retry, wait_exponential, stop_after_attempt
+import time
 from tqdm import tqdm
 
 from skit_labels import constants as const
@@ -403,10 +405,15 @@ async def upload_dataset_batches(
 
 
 async def upload_file(input_file: str, project_id: str, session: aiohttp.ClientSession) -> str:
+    """
+        Generic upload function where session determines where is the file uploaded to.
+        As of 10 August 2023, used for Labelstudio uploads
+    """
     with open(input_file, "rb") as f:
         return await session.post(f"/api/projects/{project_id}/import", data={"file": f})
 
 
+@retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=60*2, min=60*2, max=60*15))
 async def upload_dataset_to_labelstudio(
     input_file: str,
     url: str,
@@ -421,10 +428,13 @@ async def upload_dataset_to_labelstudio(
     """
     headers = {"Authorization": f"token {token}"}
     async with aiohttp.ClientSession(url, headers=headers) as session:
+        start_time = time.time()
         response = await upload_file(input_file, project_id, session)
+        logger.info("Time taken for uploading dataset: " + "%.2f" % (time.time() - start_time) + " seconds")
 
         if response.status != 201:
             error_message = await response.text()
+            logger.warning("Attempt to upload dataset to LS failed. Retrying")
             raise RuntimeError(f"Failed to upload dataset to LabelStudio: {error_message}, {response.status}")
         else:
             response = await response.json()
