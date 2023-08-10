@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.34
+- [x] PL-61: Add retry mechanism for uploading data to Label studio
+
 ## 0.3.33
 - [x] PL-1300: new data format support & extra meta-annotation-columns  (#21)
 
