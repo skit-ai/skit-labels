@@ -10,7 +10,7 @@ from loguru import logger
 from datetime import datetime
 import pandas as pd
 from typing import Union
-from constants import EXPECTED_COLUMNS_MAPPING
+from skit_labels import constants as const
 
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "SUCCESS", "INFO", "DEBUG", "TRACE"]
 
@@ -113,7 +113,7 @@ def add_data_label(input_file: str, data_label: Optional[str] = None) -> str:
 
 
 def validate_headers(input_file, tagging_type):
-    expected_columns_mapping  = EXPECTED_COLUMNS_MAPPING
+    expected_columns_mapping  = const.EXPECTED_COLUMNS_MAPPING
     expected_headers = expected_columns_mapping.get(tagging_type)
     
     df = pd.read_csv(input_file)
