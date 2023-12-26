@@ -123,5 +123,5 @@ TAXONOMY = "taxonomy"
 VALUE = "value"
 
 EXPECTED_COLUMNS_MAPPING = {
-    "conversation_tagging": ['situation_id', 'situation_str', 'call']
+    "conversation_tagging": ['scenario', 'scenario_category', 'situation_str', 'call']
 }
