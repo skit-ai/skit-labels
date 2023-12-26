@@ -319,12 +319,17 @@ def build_cli():
     return parser
 
 
-def upload_dataset(input_file, url, token, job_id, data_source, data_label = None):
+def upload_dataset(input_file, url, token, job_id, data_source, data_label = None, tagging_type=None):
     input_file = utils.add_data_label(input_file, data_label)
     if data_source == const.SOURCE__DB:
         fn = commands.upload_dataset_to_db
     elif data_source == const.SOURCE__LABELSTUDIO:
-        fn = commands.upload_dataset_to_labelstudio
+        if tagging_type:
+            is_valid, error = utils.validate_input_data(tagging_type, input_file)
+            if not is_valid:
+                return error, None
+                
+        fn = commands.upload_dataset_to_labelstudio 
     errors, df_size = asyncio.run(
         fn(
             input_file,

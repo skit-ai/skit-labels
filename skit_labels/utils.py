@@ -10,7 +10,7 @@ from loguru import logger
 from datetime import datetime
 import pandas as pd
 from typing import Union
-
+from constants import EXPECTED_COLUMNS_MAPPING
 
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "SUCCESS", "INFO", "DEBUG", "TRACE"]
 
@@ -110,3 +110,37 @@ def add_data_label(input_file: str, data_label: Optional[str] = None) -> str:
     df = df.assign(data_label=data_label)
     df.to_csv(input_file, index=False)
     return input_file
+
+
+def validate_headers(input_file, tagging_type):
+    expected_columns_mapping  = EXPECTED_COLUMNS_MAPPING
+    expected_headers = expected_columns_mapping.get(tagging_type)
+    
+    df = pd.read_csv(input_file)
+    column_headers = df.columns.to_list()
+    column_headers = [header.lower() for header in column_headers]
+    column_headers = sorted(column_headers)
+    expected_headers = sorted(expected_headers)
+    logger.info(f"column_headers: {column_headers}")
+    logger.info(f"expected_headers: {expected_headers}")
+    
+    is_match = column_headers == expected_headers
+    mismatch_headers = []
+    logger.info(f"Is match: {is_match}")
+    
+    if not is_match:
+        mismatch_headers_set =set(column_headers).symmetric_difference(set(expected_headers))
+        mismatch_headers = list(mismatch_headers_set)
+    return is_match, mismatch_headers
+
+
+def validate_input_data(tagging_type, input_file):
+    is_valid = True
+    error = ''
+    if tagging_type == 'conversation_tagging':
+        is_match, mismatch_headers = validate_headers(input_file, tagging_type)
+        if not is_match:
+            error = f'Headers in the input file does not match the expected fields. Mismatched fields = {mismatch_headers}'
+            is_valid = False
+        
+    return is_valid, error
