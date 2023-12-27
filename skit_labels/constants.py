@@ -121,3 +121,9 @@ FROM_NAME_INTENT = "tag"
 CHOICES = "choices"
 TAXONOMY = "taxonomy"
 VALUE = "value"
+
+EXPECTED_COLUMNS_MAPPING = {
+    "conversation_tagging": ['scenario', 'scenario_category', 'situation_str', 'call', 'data_label']
+}
+
+CONVERSATION_TAGGING = 'conversation_tagging'

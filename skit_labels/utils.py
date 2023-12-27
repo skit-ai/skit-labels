@@ -10,7 +10,7 @@ from loguru import logger
 from datetime import datetime
 import pandas as pd
 from typing import Union
-
+from skit_labels import constants as const
 
 LOG_LEVELS = ["CRITICAL", "ERROR", "WARNING", "SUCCESS", "INFO", "DEBUG", "TRACE"]
 
@@ -110,3 +110,45 @@ def add_data_label(input_file: str, data_label: Optional[str] = None) -> str:
     df = df.assign(data_label=data_label)
     df.to_csv(input_file, index=False)
     return input_file
+
+
+def validate_headers(input_file, tagging_type):
+    expected_columns_mapping  = const.EXPECTED_COLUMNS_MAPPING
+    expected_headers = expected_columns_mapping.get(tagging_type)
+    
+    df = pd.read_csv(input_file)
+    
+    column_headers = df.columns.to_list()
+    column_headers = [header.lower() for header in column_headers]
+    column_headers = sorted(column_headers)
+    expected_headers = sorted(expected_headers)
+    
+    logger.info(f"column_headers: {column_headers}")
+    logger.info(f"expected_headers: {expected_headers}")
+    
+    is_match = column_headers == expected_headers
+    logger.info(f"Is match: {is_match}")
+    
+    if not is_match:
+        missing_headers = set(expected_headers).difference(set(column_headers))
+        additional_headers = set(column_headers).difference(set(expected_headers))
+        if missing_headers:
+            return missing_headers
+        elif additional_headers:
+            df.drop(additional_headers, axis=1, inplace=True)
+            df.to_csv(input_file, index=False)
+            is_match = True
+            logger.info(f"Following additional headers have been removed from the csv: {additional_headers}")
+    return []
+
+
+def validate_input_data(tagging_type, input_file):
+    is_valid = True
+    error = ''
+    if tagging_type == const.CONVERSATION_TAGGING:
+        missing_headers = validate_headers(input_file, tagging_type)
+        if missing_headers:
+            error = f'Headers in the input file does not match the expected fields. Missing fields = {missing_headers}'
+            is_valid = False
+        
+    return is_valid, error

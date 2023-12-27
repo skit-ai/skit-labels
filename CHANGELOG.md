@@ -1,4 +1,6 @@
 # CHANGELOG
+## 0.3.35
+- [x] add: validations for the input file for conversation tagging
 
 ## 0.3.34
 - [x] PL-61: Add retry mechanism for uploading data to Label studio
