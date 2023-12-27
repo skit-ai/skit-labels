@@ -227,6 +227,13 @@ def upload_dataset_to_labelstudio_command(
         required=True,
         help="The data label implying the source of data",
     )
+    
+    parser.add_argument(
+        "--tagging-type",
+        type=str,
+        help="The tagging type for the calls being uploaded",
+    )
+    
     return parser
 
 
@@ -391,7 +398,7 @@ def cmd_to_str(args: argparse.Namespace) -> str:
             arg_id = args.job_id
 
         _ = is_valid_data_label(args.data_label)
-        errors, df_size = upload_dataset(args.input, args.url, args.token, arg_id, args.data_source, args.data_label)
+        errors, df_size = upload_dataset(args.input, args.url, args.token, arg_id, args.data_source, args.data_label, args.tagging_type)
 
         if errors:
             return (
