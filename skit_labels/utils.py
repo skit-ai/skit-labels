@@ -137,7 +137,7 @@ def validate_headers(input_file, tagging_type):
 def validate_input_data(tagging_type, input_file):
     is_valid = True
     error = ''
-    if tagging_type == 'conversation_tagging':
+    if tagging_type == const.CONVERSATION_TAGGING:
         is_match, mismatch_headers = validate_headers(input_file, tagging_type)
         if not is_match:
             error = f'Headers in the input file does not match the expected fields. Mismatched fields = {mismatch_headers}'

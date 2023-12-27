@@ -125,3 +125,5 @@ VALUE = "value"
 EXPECTED_COLUMNS_MAPPING = {
     "conversation_tagging": ['scenario', 'scenario_category', 'situation_str', 'call']
 }
+
+CONVERSATION_TAGGING = 'conversation_tagging'
