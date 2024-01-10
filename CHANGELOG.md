@@ -1,4 +1,8 @@
 # CHANGELOG
+
+## 0.3.36
+- [x] update: Reftime handling works if reftime is malformed
+
 ## 0.3.35
 - [x] add: validations for the input file for conversation tagging
 

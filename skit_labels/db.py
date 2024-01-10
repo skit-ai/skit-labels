@@ -26,6 +26,15 @@ from skit_labels.types import (
 )
 
 
+def update_reftime(reftime, tz):
+    try:
+        reftime = to_datetime(reftime)
+        return reftime.astimezone(tz).isoformat()
+    except Exception as e:
+        print("Couldn't convert thr timezone for Reftime: " + str(reftime))
+        return reftime
+
+
 def build_task(
     d: Dict, task_type: str, data_id: Optional[str] = None, tz=pytz.UTC
 ) -> Task:
@@ -39,8 +48,7 @@ def build_task(
         # Since the reftime from db is in UTC, we convert it to our timezone. This
         # is needed as saying 12 pm means different things in different timezones
         # and can't be translated without doing something stupid.
-        task.reftime = to_datetime(task.reftime)
-        task.reftime = task.reftime.astimezone(tz).isoformat()
+        task.reftime = update_reftime(task.reftime, tz)
     elif task_type == "simulated_call":
         task = SimulatedCallTask.from_dict(d)
     elif task_type == "audio_segment":
