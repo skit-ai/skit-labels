@@ -1,4 +1,6 @@
 # CHANGELOG
+## 0.3.37
+- [x] update: Packages for fixing vulnerabilities
 
 ## 0.3.36
 - [x] update: Reftime handling works if reftime is malformed
